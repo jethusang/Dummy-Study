@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Modeling Study Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        secondary: '#1e40af',
+                        accent: '#3b82f6',
+                        dark: '#1e293b',
+                        light: '#f1f5f9'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .flashcard {
+            perspective: 1000px;
+            height: 300px;
+        }
+        
+        .flashcard-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        
+        .flashcard.flipped .flashcard-inner {
+            transform: rotateY(180deg);
+        }
+        
+        .flashcard-front, .flashcard-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .flashcard-back {
+            transform: rotateY(180deg);
+        }
+        
+        .progress-bar {
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            transition: transform 0.3s;
+        }
+        
+        .quiz-option {
+            transition: all 0.2s;
+        }
+        
+        .quiz-option:hover {
+            background-color: #e0f2fe;
+        }
+        
+        .correct-answer {
+            background-color: #dcfce7;
+            border-left: 4px solid #22c55e;
+        }
+        
+        .incorrect-answer {
+            background-color: #fee2e2;
+            border-left: 4px solid #ef4444;
+        }
+        
+        .explanation-box {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease;
+        }
+        
+        .explanation-box.open {
+            max-height: 500px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Header -->
+    <header class="bg-white shadow-md">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-dark">Database Modeling Study Tool</h1>
+                    <p class="text-gray-600">From Entity Relationships to Normal Forms</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="bg-primary text-white px-4 py-2 rounded-lg flex items-center">
+                        <i class="fas fa-graduation-cap mr-2"></i>
+                        <span>Study Mode</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Tabs Navigation -->
+        <div class="flex border-b border-gray-200 mb-8">
+            <button class="tab-btn px-6 py-3 font-medium text-gray-600 hover:text-primary transition-all border-b-2 border-transparent hover:border-primary" data-tab="overview">
+                <i class="fas fa-home mr-2"></i>Overview
+            </button>
+            <button class="tab-btn px-6 py-3 font-medium text-gray-600 hover:text-primary transition-all border-b-2 border-transparent hover:border-primary" data-tab="flashcards">
+                <i class="fas fa-layer-group mr-2"></i>Flashcards
+            </button>
+            <button class="tab-btn px-6 py-3 font-medium text-gray-600 hover:text-primary transition-all border-b-2 border-transparent hover:border-primary" data-tab="quiz">
+                <i class="fas fa-question-circle mr-2"></i>Quiz
+            </button>
+            <button class="tab-btn px-6 py-3 font-medium text-gray-600 hover:text-primary transition-all border-b-2 border-transparent hover:border-primary" data-tab="normalization">
+                <i class="fas fa-sitemap mr-2"></i>Normalization
+            </button>
+        </div>
+
+        <!-- Tab Contents -->
+        <div class="tab-content active" id="overview">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="text-primary text-4xl mb-4">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Database Concepts</h3>
+                    <p class="text-gray-600 mb-4">Learn fundamental database principles including entities, attributes, relationships, and keys.</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-500">5 topics</span>
+                        <button class="text-primary hover:text-secondary">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="text-primary text-4xl mb-4">
+                        <i class="fas fa-project-diagram"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Entity Relationships</h3>
+                    <p class="text-gray-600 mb-4">Understand how to model relationships between entities and represent them visually.</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-500">4 topics</span>
+                        <button class="text-primary hover:text-secondary">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+                    <div class="text-primary text-4xl mb-4">
+                        <i class="fas fa-filter"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Normalization</h3>
+                    <p class="text-gray-600 mb-4">Master the process of normalizing databases to eliminate redundancy and anomalies.</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-500">6 topics</span>
+                        <button class="text-primary hover:text-secondary">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+                <h2 class="text-2xl font-bold mb-4 text-dark">Introduction to Database Modeling</h2>
+                <div class="flex items-start">
+                    <div class="flex-1 pr-4">
+                        <p class="text-gray-700 mb-4">
+                            In the late 1960s, mathematician Dr. E.F. Codd at IBM suggested using mathematical principles for database design. 
+                            His seminal 1970 paper introduced the relational model, forming the foundation for relational databases and the 
+                            normalization methodology.
+                        </p>
+                        <p class="text-gray-700 mb-4">
+                            Normalization addresses problems like data duplication and anomalies during insertion, deletion, and updates. 
+                            This methodology determines database contents independently of physical constraints.
+                        </p>
+                        <div class="bg-blue-50 border-l-4 border-primary p-4 rounded mb-4">
+                            <p class="text-gray-700">
+                                <span class="font-bold">Key Insight:</span> Normalization creates relational schemas with no information redundancy, 
+                                eliminating data anomalies and ensuring data integrity.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="w-1/3">
+                        <div class="bg-gray-200 border-2 border-dashed rounded-xl w-full h-48 flex items-center justify-center text-gray-500">
+                            Database Schema Visualization
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-xl font-bold mb-4 text-dark">Advantages of Databases</h3>
+                    <ul class="space-y-2">
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                            <span>Reduced data redundancy</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                            <span>Reduced updating errors and increased consistency</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                            <span>Greater data integrity and independence</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                            <span>Improved data access through query languages</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                            <span>Reduced costs for data entry, storage, and retrieval</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-xl font-bold mb-4 text-dark">Database Implementation Challenges</h3>
+                    <ul class="space-y-2">
+                        <li class="flex items-start">
+                            <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-2"></i>
+                            <span>Complex, difficult, and time-consuming design process</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-2"></i>
+                            <span>Substantial hardware and software start-up costs</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-2"></i>
+                            <span>Database damage affects all applications</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-2"></i>
+                            <span>Extensive conversion costs from file-based systems</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-2"></i>
+                            <span>Initial training required for programmers and users</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flashcards Tab -->
+        <div class="tab-content" id="flashcards">
+            <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-dark">Database Modeling Flashcards</h2>
+                    <div class="flex items-center">
+                        <div class="mr-4">
+                            <span class="font-medium">Progress:</span>
+                            <span id="progress-count">1</span>/<span id="total-flashcards">12</span>
+                        </div>
+                        <button id="reset-flashcards" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg">
+                            <i class="fas fa-redo mr-2"></i>Reset
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="progress-bar bg-gray-200 mb-6">
+                    <div id="progress-fill" class="progress-fill bg-primary" style="width: 8%;"></div>
+                </div>
+                
+                <div class="flex justify-center mb-6">
+                    <div class="flashcard w-full max-w-2xl cursor-pointer" id="flashcard">
+                        <div class="flashcard-inner">
+                            <div class="flashcard-front bg-gradient-to-r from-blue-50 to-indigo-50 flex flex-col justify-center items-center">
+                                <div class="text-5xl text-primary mb-4">
+                                    <i class="fas fa-database"></i>
+                                </div>
+                                <h3 class="text-2xl font-bold text-center mb-4 text-dark" id="term">Entity</h3>
+                                <p class="text-gray-500">Click to flip</p>
+                            </div>
+                            <div class="flashcard-back bg-gradient-to-r from-indigo-50 to-purple-50">
+                                <div class="text-lg text-gray-700" id="definition">
+                                    An entity is any object in the system that we want to model and store information about. 
+                                    Entities are usually recognizable concepts, either concrete or abstract, such as person, 
+                                    places, things, or events which have relevance to the database.
+                                </div>
+                                <div class="mt-4 text-sm text-gray-500">
+                                    Example: Employee, Student, Lecturer
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-center space-x-4">
+                    <button id="prev-card" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg">
+                        <i class="fas fa-arrow-left mr-2"></i>Previous
+                    </button>
+                    <button id="next-card" class="bg-primary hover:bg-secondary text-white px-6 py-3 rounded-lg">
+                        Next<i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-xl font-bold mb-4 text-dark">Key Concepts</h3>
+                    <ul class="space-y-3">
+                        <li class="flex items-start p-3 bg-blue-50 rounded-lg">
+                            <i class="fas fa-cube text-primary mt-1 mr-3"></i>
+                            <div>
+                                <h4 class="font-bold">Entity</h4>
+                                <p class="text-sm text-gray-600">Object we want to model and store information about</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start p-3 bg-blue-50 rounded-lg">
+                            <i class="fas fa-tag text-primary mt-1 mr-3"></i>
+                            <div>
+                                <h4 class="font-bold">Attribute</h4>
+                                <p class="text-sm text-gray-600">Item of information stored about an entity</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start p-3 bg-blue-50 rounded-lg">
+                            <i class="fas fa-link text-primary mt-1 mr-3"></i>
+                            <div>
+                                <h4 class="font-bold">Relationship</h4>
+                                <p class="text-sm text-gray-600">Association between entities</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start p-3 bg-blue-50 rounded-lg">
+                            <i class="fas fa-key text-primary mt-1 mr-3"></i>
+                            <div>
+                                <h4 class="font-bold">Primary Key</h4>
+                                <p class="text-sm text-gray-600">Uniquely identifies each record in a table</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-xl font-bold mb-4 text-dark">Relationship Types</h3>
+                    <div class="space-y-4">
+                        <div class="p-3 bg-indigo-50 rounded-lg">
+                            <h4 class="font-bold text-indigo-700">One-to-One (1:1)</h4>
+                            <p class="text-sm text-gray-600 mt-1">One occurrence of an entity relates to only one occurrence in another entity</p>
+                        </div>
+                        <div class="p-3 bg-indigo-50 rounded-lg">
+                            <h4 class="font-bold text-indigo-700">One-to-Many (1:M)</h4>
+                            <p class="text-sm text-gray-600 mt-1">One occurrence in an entity relates to many occurrences in another entity</p>
+                        </div>
+                        <div class="p-3 bg-indigo-50 rounded-lg">
+                            <h4 class="font-bold text-indigo-700">Many-to-Many (M:N)</h4>
+                            <p class="text-sm text-gray-600 mt-1">Many occurrences in an entity relate to many occurrences in another entity</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-xl font-bold mb-4 text-dark">Key Types</h3>
+                    <div class="space-y-3">
+                        <div class="p-3 bg-purple-50 rounded-lg">
+                            <h4 class="font-bold text-purple-700">Primary Key</h4>
+                            <p class="text-sm text-gray-600">Uniquely identifies each record</p>
+                        </div>
+                        <div class="p-3 bg-purple-50 rounded-lg">
+                            <h4 class="font-bold text-purple-700">Foreign Key</h4>
+                            <p class="text-sm text-gray-600">Links to a primary key in another table</p>
+                        </div>
+                        <div class="p-3 bg-purple-50 rounded-lg">
+                            <h4 class="font-bold text-purple-700">Composite Key</h4>
+                            <p class="text-sm text-gray-600">Combination of two or more columns as a key</p>
+                        </div>
+                        <div class="p-3 bg-purple-50 rounded-lg">
+                            <h4 class="font-bold text-purple-700">Secondary Key</h4>
+                            <p class="text-sm text-gray-600">Candidate keys not chosen as primary key</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiz Tab -->
+        <div class="tab-content" id="quiz">
+            <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+                <h2 class="text-2xl font-bold mb-6 text-dark">Database Modeling Quiz</h2>
+                
+                <div id="quiz-container">
+                    <div class="quiz-question mb-8">
+                        <h3 class="text-xl font-semibold mb-4">1. What is an entity in database modeling?</h3>
+                        <div class="space-y-3">
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q1" class="mr-3" value="a">
+                                <label>A relationship between tables</label>
+                            </div>
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q1" class="mr-3" value="b">
+                                <label>Any object in the system that we want to model and store information about</label>
+                            </div>
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q1" class="mr-3" value="c">
+                                <label>A type of key used to uniquely identify records</label>
+                            </div>
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q1" class="mr-3" value="d">
+                                <label>A database table column</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="quiz-question mb-8">
+                        <h3 class="text-xl font-semibold mb-4">2. Which of the following best describes a foreign key?</h3>
+                        <div class="space-y-3">
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q2" class="mr-3" value="a">
+                                <label>A key that uniquely identifies each record in a table</label>
+                            </div>
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q2" class="mr-3" value="b">
+                                <label>A key that can be null in some records</label>
+                            </div>
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q2" class="mr-3" value="c">
+                                <label>One or more attributes in one entity that links to a primary key in another entity</label>
+                            </div>
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q2" class="mr-3" value="d">
+                                <label>A key that consists of multiple columns</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="quiz-question mb-8">
+                        <h3 class="text-xl font-semibold mb-4">3. What problem does normalization primarily solve?</h3>
+                        <div class="space-y-3">
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q3" class="mr-3" value="a">
+                                <label>Slow database performance</label>
+                            </div>
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q3" class="mr-3" value="b">
+                                <label>Data redundancy and associated anomalies</label>
+                            </div>
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q3" class="mr-3" value="c">
+                                <label>Insufficient storage capacity</label>
+                            </div>
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q3" class="mr-3" value="d">
+                                <label>Database security issues</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="quiz-question mb-8">
+                        <h3 class="text-xl font-semibold mb-4">4. Which normal form requires that a table contains no repeating columns?</h3>
+                        <div class="space-y-3">
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q4" class="mr-3" value="a">
+                                <label>Second Normal Form (2NF)</label>
+                            </div>
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q4" class="mr-3" value="b">
+                                <label>Third Normal Form (3NF)</label>
+                            </div>
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q4" class="mr-3" value="c">
+                                <label>First Normal Form (1NF)</label>
+                            </div>
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q4" class="mr-3" value="d">
+                                <label>Boyce-Codd Normal Form (BCNF)</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="quiz-question mb-8">
+                        <h3 class="text-xl font-semibold mb-4">5. What type of anomaly occurs when certain attributes cannot be inserted without the presence of other attributes?</h3>
+                        <div class="space-y-3">
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q5" class="mr-3" value="a">
+                                <label>Update Anomaly</label>
+                            </div>
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q5" class="mr-3" value="b">
+                                <label>Delete Anomaly</label>
+                            </div>
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q5" class="mr-3" value="c">
+                                <label>Insert Anomaly</label>
+                            </div>
+                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
+                                <input type="radio" name="q5" class="mr-3" value="d">
+                                <label>Selection Anomaly</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-center">
+                        <button id="submit-quiz" class="bg-primary hover:bg-secondary text-white px-8 py-3 rounded-lg text-lg font-medium">
+                            Submit Quiz
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="quiz-results" class="hidden mt-8">
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl mb-6">
+                        <h3 class="text-2xl font-bold text-center mb-2">Quiz Results</h3>
+                        <div class="text-center text-4xl font-bold text-primary mb-4" id="score-display">4/5</div>
+                        <p class="text-center text-gray-600">Congratulations! You've completed the Database Modeling Quiz.</p>
+                    </div>
+                    
+                    <div class="space-y-6" id="results-details">
+                        <!-- Results will be populated here by JavaScript -->
+                    </div>
+                    
+                    <div class="flex justify-center mt-8">
+                        <button id="retry-quiz" class="bg-primary hover:bg-secondary text-white px-8 py-3 rounded-lg text-lg font-medium">
+                            <i class="fas fa-redo mr-2"></i>Retry Quiz
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Normalization Tab -->
+        <div class="tab-content" id="normalization">
+            <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+                <h2 class="text-2xl font-bold mb-6 text-dark">Database Normalization Process</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-gradient-to-r from-blue-100 to-blue-200 p-4 rounded-lg text-center">
+                        <div class="text-2xl font-bold text-blue-800 mb-2">1NF</div>
+                        <p class="text-sm">No repeating groups</p>
+                    </div>
+                    <div class="bg-gradient-to-r from-indigo-100 to-indigo-200 p-4 rounded-lg text-center">
+                        <div class="text-2xl font-bold text-indigo-800 mb-2">2NF</div>
+                        <p class="text-sm">No partial dependencies</p>
+                    </div>
+                    <div class="bg-gradient-to-r from-purple-100 to-purple-200 p-4 rounded-lg text-center">
+                        <div class="text-2xl font-bold text-purple-800 mb-2">3NF</div>
+                        <p class="text-sm">No transitive dependencies</p>
+                    </div>
+                    <div class="bg-gradient-to-r from-pink-100 to-pink-200 p-4 rounded-lg text-center">
+                        <div class="text-2xl font-bold text-pink-800 mb-2">BCNF</div>
+                        <p class="text-sm">Eliminates anomalies</p>
+                    </div>
+                </div>
+                
+                <div class="mb-8">
+                    <h3 class="text-xl font-semibold mb-4">Normalization Steps</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-start p-4 bg-blue-50 rounded-lg">
+                            <div class="bg-primary text-white rounded-full h-8 w-8 flex items-center justify-center mr-4 flex-shrink-0">1</div>
+                            <div>
+                                <h4 class="font-bold text-lg">UNF to 1NF</h4>
+                                <p class="text-gray-700">Convert unnormalized table to first normal form by removing repeating attributes to a new table.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start p-4 bg-indigo-50 rounded-lg">
+                            <div class="bg-primary text-white rounded-full h-8 w-8 flex items-center justify-center mr-4 flex-shrink-0">2</div>
+                            <div>
+                                <h4 class="font-bold text-lg">1NF to 2NF</h4>
+                                <p class="text-gray-700">Remove partial dependencies by moving attributes that depend on only part of the key to a new table.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start p-4 bg-purple-50 rounded-lg">
+                            <div class="bg-primary text-white rounded-full h-8 w-8 flex items-center justify-center mr-4 flex-shrink-0">3</div>
+                            <div>
+                                <h4 class="font-bold text-lg">2NF to 3NF</h4>
+                                <p class="text-gray-700">Remove transitive dependencies by moving attributes that depend on other non-key attributes to a new table.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-8">
+                    <h3 class="text-xl font-semibold mb-4">Normalization Example</h3>
+                    <div class="border rounded-lg overflow-hidden">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project Code</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project Title</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee No</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hourly Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">P001</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">Website Redesign</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">E101</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">John Smith</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">$45</td>
+                                </tr>
+                                <tr class="bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap">P001</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">Website Redesign</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">E102</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">Sarah Johnson</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">$50</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">P002</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">Mobile App</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">E101</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">John Smith</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">$48</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="bg-gray-100 p-3 text-sm text-gray-600">
+                            <i class="fas fa-info-circle mr-2 text-primary"></i>
+                            This unnormalized table contains repeating groups and will be transformed through normalization steps.
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-xl font-semibold mb-4">Normalization Rules Summary</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <h4 class="font-bold text-lg text-primary mb-2">First Normal Form (1NF)</h4>
+                            <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                                <li>Contains no repeating columns</li>
+                                <li>Each cell contains a single value</li>
+                                <li>Each record is unique</li>
+                            </ul>
+                        </div>
+                        <div class="bg-indigo-50 p-4 rounded-lg">
+                            <h4 class="font-bold text-lg text-indigo-700 mb-2">Second Normal Form (2NF)</h4>
+                            <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                                <li>Already in 1NF</li>
+                                <li>Contains only columns dependent on the whole primary key</li>
+                                <li>No partial dependencies</li>
+                            </ul>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <h4 class="font-bold text-lg text-purple-700 mb-2">Third Normal Form (3NF)</h4>
+                            <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                                <li>Already in 2NF</li>
+                                <li>All non-key columns are dependent only on the primary key</li>
+                                <li>No transitive dependencies</li>
+                            </ul>
+                        </div>
+                        <div class="bg-pink-50 p-4 rounded-lg">
+                            <h4 class="font-bold text-lg text-pink-700 mb-2">Anomalies Addressed</h4>
+                            <ul class="list-disc pl-5 space-y-1 text-gray-700">
+                                <li>Update anomalies</li>
+                                <li>Delete anomalies</li>
+                                <li>Insert anomalies</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <h3 class="text-xl font-bold">Database Modeling Study Tool</h3>
+                    <p class="text-gray-400">Master ER Models and Normalization</p>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="#" class="text-gray-400 hover:text-white">
+                        <i class="fab fa-github fa-lg"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white">
+                        <i class="fab fa-linkedin fa-lg"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white">
+                        <i class="fab fa-twitter fa-lg"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-6 pt-6 text-center text-gray-400">
+                <p>© 2023 Database Modeling Study Tool. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Tab switching functionality
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove active class from all tabs and buttons
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('border-primary', 'text-primary');
+                    btn.classList.add('border-transparent');
+                });
+                
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                
+                // Add active class to clicked button
+                button.classList.add('border-primary', 'text-primary');
+                button.classList.remove('border-transparent');
+                
+                // Show corresponding tab
+                const tabId = button.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+        
+        // Flashcard functionality
+        const flashcards = [
+            {
+                term: "Entity",
+                definition: "An entity is any object in the system that we want to model and store information about. Entities are usually recognizable concepts, either concrete or abstract, such as person, places, things, or events which have relevance to the database."
+            },
+            {
+                term: "Attribute",
+                definition: "An attribute is an item of information which is stored about an entity. For example, the entity 'lecturer' could have attributes: staff id, surname, forename, date of birth, telephone number, etc. An attribute can only appear in one entity, unless it is the key attribute in another entity."
+            },
+            {
+                term: "Relationship",
+                definition: "A relationship is an association (link) of entities. The association includes one entity from each participating entity type. A relationship is established by a foreign key in one entity linking to the primary key in another."
+            },
+            {
+                term: "Primary Key",
+                definition: "A primary key consists of one or more attributes that distinguishes a specific record from any other. In the table only one unique number exists and acts as the primary key for each record. A primary key is mandatory - each entity occurrence must have a value for its primary key."
+            },
+            {
+                term: "Foreign Key",
+                definition: "A foreign key is one or more attributes in one entity, which enables a link (or relationship) to another entity. A foreign key in one entity links to a primary key in another entity. However, if business rules permit, a foreign key may be optional."
+            },
+            {
+                term: "Normalisation",
+                definition: "Normalisation is a data analysis technique to design a database system. It allows the database designer to understand the current data structures and aids future changes. The end result is a set of entities that removes unnecessary redundancy and avoids anomalies."
+            },
+            {
+                term: "1st Normal Form (1NF)",
+                definition: "A table is in the first normal form if it contains no repeating columns. To transform unnormalized data into 1NF, move any repeating attributes to a new table together with a copy of the key from the original table."
+            },
+            {
+                term: "2nd Normal Form (2NF)",
+                definition: "A table is in the second normal form if it is in 1NF and contains only columns that are dependent on the whole primary key. To transform 1NF to 2NF, remove any partial dependencies (attributes that depend on only part of the key)."
+            },
+            {
+                term: "3rd Normal Form (3NF)",
+                definition: "A table is in the third normal form if it is in 2NF and all non-key columns are dependent only on the primary key. To transform 2NF to 3NF, remove any transitive dependencies (attributes that depend on other non-key attributes)."
+            },
+            {
+                term: "Update Anomaly",
+                definition: "An update anomaly exists when one or more instances of duplicated data is updated, but not all. For example, if a person moves address, you need to update all instances of that person's address in the database."
+            },
+            {
+                term: "Delete Anomaly",
+                definition: "A delete anomaly exists when certain attributes are lost because of the deletion of other attributes. For example, if the last student on a course leaves, all information about that course might be lost."
+            },
+            {
+                term: "Insert Anomaly",
+                definition: "An insert anomaly occurs when certain attributes cannot be inserted into the database without the presence of other attributes. For example, you can't add a new course unless you have at least one student enrolled on it."
+            }
+        ];
+        
+        let currentCardIndex = 0;
+        const totalFlashcards = flashcards.length;
+        document.getElementById('total-flashcards').textContent = totalFlashcards;
+        
+        // Update flashcard content
+        function updateFlashcard() {
+            document.getElementById('term').textContent = flashcards[currentCardIndex].term;
+            document.getElementById('definition').textContent = flashcards[currentCardIndex].definition;
+            document.getElementById('progress-count').textContent = currentCardIndex + 1;
+            
+            // Update progress bar
+            const progressPercentage = ((currentCardIndex + 1) / totalFlashcards) * 100;
+            document.getElementById('progress-fill').style.width = `${progressPercentage}%`;
+        }
+        
+        // Initialize first flashcard
+        updateFlashcard();
+        
+        // Flip card on click
+        document.getElementById('flashcard').addEventListener('click', function() {
+            this.classList.toggle('flipped');
+        });
+        
+        // Next card button
+        document.getElementById('next-card').addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (currentCardIndex < totalFlashcards - 1) {
+                currentCardIndex++;
+                document.getElementById('flashcard').classList.remove('flipped');
+                updateFlashcard();
+            }
+        });
+        
+        // Previous card button
+        document.getElementById('prev-card').addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (currentCardIndex > 0) {
+                currentCardIndex--;
+                document.getElementById('flashcard').classList.remove('flipped');
+                updateFlashcard();
+            }
+        });
+        
+        // Reset flashcards
+        document.getElementById('reset-flashcards').addEventListener('click', function() {
+            currentCardIndex = 0;
+            document.getElementById('flashcard').classList.remove('flipped');
+            updateFlashcard();
+        });
+        
+        // Quiz functionality
+        document.getElementById('submit-quiz').addEventListener('click', function() {
+            // Calculate score
+            let score = 0;
+            const answers = ['b', 'c', 'b', 'c', 'c'];
+            
+            // Check each answer
+            for (let i = 1; i <= 5; i++) {
+                const selected = document.querySelector(`input[name="q${i}"]:checked`);
+                if (selected && selected.value === answers[i-1]) {
+                    score++;
+                }
+            }
+            
+            // Display results
+            document.getElementById('score-display').textContent = `${score}/5`;
+            document.getElementById('quiz-container').classList.add('hidden');
+            document.getElementById('quiz-results').classList.remove('hidden');
+            
+            // Build detailed results
+            const resultsContainer = document.getElementById('results-details');
+            resultsContainer.innerHTML = '';
+            
+            const questions = [
+                {
+                    question: "1. What is an entity in database modeling?",
+                    options: [
+                        "A relationship between tables",
+                        "Any object in the system that we want to model and store information about",
+                        "A type of key used to uniquely identify records",
+                        "A database table column"
+                    ],
+                    correct: 1,
+                    explanation: "An entity is any object in the system that we want to model and store information about. Examples include Employee, Student, Lecturer, etc. Entities are analogous to tables in the relational model."
+                },
+                {
+                    question: "2. Which of the following best describes a foreign key?",
+                    options: [
+                        "A key that uniquely identifies each record in a table",
+                        "A key that can be null in some records",
+                        "One or more attributes in one entity that links to a primary key in another entity",
+                        "A key that consists of multiple columns"
+                    ],
+                    correct: 2,
+                    explanation: "A foreign key is one or more attributes in one entity that enables a link to another entity. It links to a primary key in another entity and may be optional if business rules permit."
+                },
+                {
+                    question: "3. What problem does normalization primarily solve?",
+                    options: [
+                        "Slow database performance",
+                        "Data redundancy and associated anomalies",
+                        "Insufficient storage capacity",
+                        "Database security issues"
+                    ],
+                    correct: 1,
+                    explanation: "Normalization addresses problems associated with data duplication, insertion, deletion, and updates. It removes unnecessary redundancy and avoids anomalies that can occur in unnormalized databases."
+                },
+                {
+                    question: "4. Which normal form requires that a table contains no repeating columns?",
+                    options: [
+                        "Second Normal Form (2NF)",
+                        "Third Normal Form (3NF)",
+                        "First Normal Form (1NF)",
+                        "Boyce-Codd Normal Form (BCNF)"
+                    ],
+                    correct: 2,
+                    explanation: "First Normal Form (1NF) requires that a table contains no repeating columns. To achieve 1NF, repeating attributes are moved to a new table together with a copy of the key from the original table."
+                },
+                {
+                    question: "5. What type of anomaly occurs when certain attributes cannot be inserted without the presence of other attributes?",
+                    options: [
+                        "Update Anomaly",
+                        "Delete Anomaly",
+                        "Insert Anomaly",
+                        "Selection Anomaly"
+                    ],
+                    correct: 2,
+                    explanation: "An Insert Anomaly occurs when certain attributes cannot be inserted into the database without the presence of other attributes. For example, you can't add a new course unless you have at least one student enrolled on it."
+                }
+            ];
+            
+            questions.forEach((q, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'bg-white rounded-lg p-4';
+                
+                const questionHeader = document.createElement('div');
+                questionHeader.className = 'flex justify-between items-center mb-2';
+                
+                const questionTitle = document.createElement('h4');
+                questionTitle.className = 'font-bold';
+                questionTitle.textContent = q.question;
+                
+                const selected = document.querySelector(`input[name="q${index+1}"]:checked`);
+                const isCorrect = selected && parseInt(selected.value) === q.correct;
+                
+                const resultIcon = document.createElement('span');
+                resultIcon.className = `rounded-full h-6 w-6 flex items-center justify-center ${isCorrect ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`;
+                resultIcon.innerHTML = isCorrect ? '<i class="fas fa-check"></i>' : '<i class="fas fa-times"></i>';
+                
+                questionHeader.appendChild(questionTitle);
+                questionHeader.appendChild(resultIcon);
+                questionDiv.appendChild(questionHeader);
+                
+                q.options.forEach((option, optIndex) => {
+                    const optDiv = document.createElement('div');
+                    optDiv.className = 'quiz-option p-3 rounded mb-2';
+                    
+                    if (parseInt(optIndex) === q.correct) {
+                        optDiv.classList.add('correct-answer');
+                    } else if (selected && parseInt(selected.value) === optIndex && !isCorrect) {
+                        optDiv.classList.add('incorrect-answer');
+                    }
+                    
+                    optDiv.textContent = option;
+                    questionDiv.appendChild(optDiv);
+                });
+                
+                const explanationDiv = document.createElement('div');
+                explanationDiv.className = 'explanation-box mt-3 bg-gray-50 p-4 rounded-lg';
+                
+                const explanationHeader = document.createElement('div');
+                explanationHeader.className = 'font-bold text-primary mb-2 cursor-pointer flex justify-between items-center';
+                explanationHeader.innerHTML = 'Explanation <i class="fas fa-chevron-down"></i>';
+                
+                explanationHeader.addEventListener('click', function() {
+                    explanationDiv.classList.toggle('open');
+                    const icon = this.querySelector('i');
+                    icon.classList.toggle('fa-chevron-down');
+                    icon.classList.toggle('fa-chevron-up');
+                });
+                
+                const explanationContent = document.createElement('div');
+                explanationContent.className = 'text-gray-700 mt-2';
+                explanationContent.textContent = q.explanation;
+                
+                explanationDiv.appendChild(explanationHeader);
+                explanationDiv.appendChild(explanationContent);
+                questionDiv.appendChild(explanationDiv);
+                
+                resultsContainer.appendChild(questionDiv);
+            });
+        });
+        
+        // Retry quiz button
+        document.getElementById('retry-quiz').addEventListener('click', function() {
+            // Reset all radio buttons
+            document.querySelectorAll('input[type="radio"]').forEach(radio => {
+                radio.checked = false;
+            });
+            
+            // Hide results, show quiz
+            document.getElementById('quiz-results').classList.add('hidden');
+            document.getElementById('quiz-container').classList.remove('hidden');
+        });
+        
+        // Make quiz options clickable
+        document.querySelectorAll('.quiz-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const radio = this.querySelector('input[type="radio"]');
+                if (radio) {
+                    radio.checked = true;
+                    
+                    // Add visual feedback
+                    document.querySelectorAll('.quiz-option').forEach(opt => {
+                        opt.classList.remove('bg-blue-100', 'border-primary');
+                    });
+                    this.classList.add('bg-blue-100', 'border-primary');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
