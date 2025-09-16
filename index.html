@@ -9,7 +9,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <!-- Google Fonts -->
+
     <link
       href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap"
       rel="stylesheet"
@@ -17,21 +17,20 @@
 
     <style>
       :root {
-        --primary: #c41e3a; /* Natural Sciences Green */
-        --secondary: #6b8e23; /* Faculty Red */
-        --accent: #ff6b35; /* Faculty Orange */
+        --primary: #c41e3a;
+        --secondary: #6b8e23;
+        --accent: #ff6b35;
         --light: #f8f9fa;
         --dark: #2c3e20;
       }
 
       body {
-        font-family: "Open Sans", sans-serif; /* Primary font */
+        font-family: "Open Sans", sans-serif;
         background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
         min-height: 100vh;
         color: #333;
       }
 
-      /* Secondary font class */
       .font-secondary {
         font-family: "Roboto", sans-serif;
       }
@@ -41,35 +40,14 @@
         background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
       }
 
-      .feature-icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 70px;
-        height: 70px;
-        border-radius: 50%;
-        margin-bottom: 1.5rem;
-      }
-
       .topic-card {
         transition: all 0.3s ease;
         border-top: 4px solid;
-        height: 100%;
       }
 
       .topic-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-      }
-
-      .topic-icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 50px;
-        height: 50px;
-        border-radius: 12px;
-        margin-bottom: 1rem;
       }
 
       .btn-primary {
@@ -78,265 +56,237 @@
       }
 
       .btn-primary:hover {
-        background-color: #5a7720;
-      }
-
-      .btn-secondary {
-        background-color: var(--secondary);
-        color: white;
-      }
-
-      .btn-secondary:hover {
         background-color: #a71932;
-      }
-
-      .btn-accent {
-        background-color: var(--accent);
-        color: white;
-      }
-
-      .btn-accent:hover {
-        background-color: #e55a2b;
       }
     </style>
   </head>
   <body class="antialiased">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-lg">
+   
+    <nav class="bg-white shadow-lg fixed w-full top-0 z-50">
       <div class="max-w-6xl mx-auto px-4">
-        <div class="flex justify-between">
-          <div class="flex space-x-7">
-            <div>
-              <a href="#" class="flex items-center py-4">
-                <i class="fas fa-microscope text-[#6b8e23] text-2xl mr-2"></i>
-                <span class="font-semibold text-gray-700 text-lg"
-                  >SPU NAS Study Hub</span
-                >
-              </a>
-            </div>
-          </div>
+        <div class="flex justify-between items-center">
+          <a href="#" class="flex items-center py-4">
+            <i class="fas fa-microscope text-[#6b8e23] text-2xl mr-2"></i>
+            <span class="font-semibold text-gray-700 text-lg">
+              SPU NAS Study Hub
+            </span>
+          </a>
           <div class="hidden md:flex items-center space-x-3">
             <a
               href="#"
-              class="py-4 px-2 text-[#6b8e23] border-b-4 border-[#6b8e23] font-semibold"
+              class="py-2 px-2 text-[#6b8e23] border-b-2 border-[#6b8e23] font-semibold"
               >Home</a
             >
             <a
               href="#notes"
-              class="py-4 px-2 text-gray-500 font-semibold hover:text-[#6b8e23] transition duration-300"
+              class="py-2 px-2 text-gray-600 hover:text-[#6b8e23]"
               >Notes</a
             >
             <a
               href="#features"
-              class="py-4 px-2 text-gray-500 font-semibold hover:text-[#6b8e23] transition duration-300"
+              class="py-2 px-2 text-gray-600 hover:text-[#6b8e23]"
               >Features</a
             >
             <a
               href="#about"
-              class="py-4 px-2 text-gray-500 font-semibold hover:text-[#6b8e23] transition duration-300"
+              class="py-2 px-2 text-gray-600 hover:text-[#6b8e23]"
               >About</a
             >
             <a
               href="#contact"
-              class="py-4 px-2 text-gray-500 font-semibold hover:text-[#6b8e23] transition duration-300"
+              class="py-2 px-2 text-gray-600 hover:text-[#6b8e23]"
               >Contact</a
             >
           </div>
+         
           <div class="md:hidden flex items-center">
             <button class="outline-none mobile-menu-button">
               <svg
-                class="w-6 h-6 text-gray-500"
+                class="w-6 h-6 text-gray-600"
                 fill="none"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                viewBox="0 0 24 24"
                 stroke="currentColor"
+                viewBox="0 0 24 24"
+                stroke-width="2"
               >
-                <path d="M4 6h16M4 12h16M4 18h16"></path>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               </svg>
             </button>
           </div>
         </div>
       </div>
+
+      <div class="mobile-menu hidden md:hidden bg-white shadow-md text-center">
+        <a href="#" class="block py-2 px-4 text-sm hover:bg-gray-100">Home</a>
+        <a href="#notes" class="block py-2 px-4 text-sm hover:bg-gray-100"
+          >Notes</a
+        >
+        <a href="#features" class="block py-2 px-4 text-sm hover:bg-gray-100"
+          >Features</a
+        >
+        <a href="#about" class="block py-2 px-4 text-sm hover:bg-gray-100"
+          >About</a
+        >
+        <a href="#contact" class="block py-2 px-4 text-sm hover:bg-gray-100"
+          >Contact</a
+        >
+      </div>
     </nav>
 
-    <!-- Hero Section -->
-    <section class="hero-pattern text-white py-20">
+    <section class="hero-pattern text-white py-20 mt-16">
       <div class="container mx-auto px-6 text-center">
         <div class="flex justify-center mb-6">
           <div class="bg-white/20 p-4 rounded-full">
             <i class="fas fa-atom text-4xl"></i>
           </div>
         </div>
-        <h2 class="text-4xl font-bold mb-2">
+        <h2 class="text-3xl md:text-4xl font-bold mb-2">
           Sol Plaatje University NAS Faculty
         </h2>
-        <h3 class="text-2xl mb-8">
+        <h3 class="text-lg md:text-2xl mb-8">
           Study resources for Information Systems, Data Science, and Computer
           Science students
         </h3>
-        <a href="#notes"
-          class="bg-white font-bold rounded-full py-4 px-8 shadow-lg uppercase tracking-wider text-[#6b8e23] hover:bg-gray-100 transition duration-300"
+        <a
+          href="#notes"
+          class="bg-white text-[#6b8e23] font-bold rounded-full py-3 px-6 md:py-4 md:px-8 shadow-lg uppercase tracking-wider hover:bg-gray-100 transition duration-300"
         >
           Explore Notes
-    </a>
+        </a>
       </div>
     </section>
 
-    <!-- Notes Section -->
-    <section class="py-16 px-4" id="notes">
-      <div class="max-w-6xl mx-auto">
-        <h2 class="text-3xl font-bold text-center text-gray-800 mb-4">
-          Study Notes & Resources
-        </h2>
-        <p class="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
-          Comprehensive materials for Natural and Applied Sciences courses
-        </p>
+<section class="py-16 px-4" id="notes">
+  <div class="max-w-6xl mx-auto">
+    <h2 class="text-3xl font-bold text-center text-gray-800 mb-4">
+      Study Notes & Resources
+    </h2>
+    <p class="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
+      Comprehensive materials for Natural and Applied Sciences courses
+    </p>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <!-- Database Modeling -->
-          <div
-            class="topic-card bg-white rounded-lg shadow-md p-6 border-t-4 border-[#6b8e23]"
-          >
-            <div class="topic-icon bg-[#f0f5e1] text-[#6b8e23]">
-              <i class="fas fa-database text-2xl"></i>
-            </div>
-            <h3 class="text-xl font-semibold text-gray-800 mb-2">
-              Database Modeling
-            </h3>
-            <p class="text-gray-600 mb-4">
-              Learn about entities, attributes, relationships, and normalization
-              techniques.
-            </p>
-            <div class="flex items-center text-sm text-gray-500 mb-4">
-              <i class="far fa-file-alt mr-2"></i>
-            </div>
-            <a
-              href="database-modeling.html"
-              class="inline-flex items-center text-[#6b8e23] font-medium hover:text-[#5a7720]"
-            >
-              Open Notes <i class="fas fa-arrow-right ml-2"></i>
-            </a>
-          </div>
-
-          <!-- Advanced Data Modeling -->
-          <div
-            class="topic-card bg-white rounded-lg shadow-md p-6 border-t-4 border-[#c41e3a]"
-          >
-            <div class="topic-icon bg-[#fbe7eb] text-[#c41e3a]">
-              <i class="fas fa-project-diagram text-2xl"></i>
-            </div>
-            <h3 class="text-xl font-semibold text-gray-800 mb-2">
-              Advanced Data Modeling
-            </h3>
-            <p class="text-gray-600 mb-4">
-              Deep dive into advanced modeling techniques and complex database
-              design patterns.
-            </p>
-            <div class="flex items-center text-sm text-gray-500 mb-4">
-              <i class="far fa-file-alt mr-2"></i>
-            </div>
-            <a
-              href="advanced-data-modeling.html"
-              class="inline-flex items-center text-[#c41e3a] font-medium hover:text-[#a71932]"
-            >
-              Open Notes <i class="fas fa-arrow-right ml-2"></i>
-            </a>
-          </div>
-
-          <!-- Distributed DBMS -->
-          <div
-            class="topic-card bg-white rounded-lg shadow-md p-6 border-t-4 border-[#ff6b35]"
-          >
-            <div class="topic-icon bg-[#fff0e8] text-[#ff6b35]">
-              <i class="fas fa-network-wired text-2xl"></i>
-            </div>
-            <h3 class="text-xl font-semibold text-gray-800 mb-2">
-              Distributed DBMS
-            </h3>
-            <p class="text-gray-600 mb-4">
-              Study distributed database architectures, transparency features,
-              and fragmentation strategies.
-            </p>
-            <div class="flex items-center text-sm text-gray-500 mb-4">
-              <i class="far fa-file-alt mr-2"></i>
-            </div>
-            <a
-              href="distributed-database-manage-system.html"
-              class="inline-flex items-center text-[#ff6b35] font-medium hover:text-[#e55a2b]"
-            >
-              Open Notes <i class="fas fa-arrow-right ml-2"></i>
-            </a>
-          </div>
-
-          <!-- Transaction Management -->
-          <div
-            class="topic-card bg-white rounded-lg shadow-md p-6 border-t-4 border-[#c41e3a]"
-          >
-            <div class="topic-icon bg-[#fbe7eb] text-[#c41e3a]">
-              <i class="fas fa-exchange-alt text-2xl"></i>
-            </div>
-            <h3 class="text-xl font-semibold text-gray-800 mb-2">
-              Transaction Management
-            </h3>
-            <p class="text-gray-600 mb-4">
-              Understand ACID properties, concurrency control, and recovery
-              techniques.
-            </p>
-            <div class="flex items-center text-sm text-gray-500 mb-4">
-              <i class="far fa-file-alt mr-2"></i>
-            </div>
-            <a
-              href="transaction-management.html"
-              class="inline-flex items-center text-[#c41e3a] font-medium hover:text-[#a71932]"
-            >
-              Open Notes <i class="fas fa-arrow-right ml-2"></i>
-            </a>
-          </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      
+      <div
+        class="topic-card bg-white rounded-lg shadow-md p-6 border-t-4 border-[#6b8e23]"
+      >
+        <div class="topic-icon bg-[#f0f5e1] text-[#6b8e23] mb-4 w-12 h-12 flex items-center justify-center rounded-lg">
+          <i class="fas fa-database text-xl"></i>
         </div>
+        <h3 class="text-lg md:text-xl font-semibold text-gray-800 mb-2">
+          Database Modeling
+        </h3>
+        <p class="text-gray-600 mb-4">
+          Learn about entities, attributes, relationships, and normalization techniques.
+        </p>
+        <a
+          href="database-modeling.html"
+          class="inline-flex items-center text-[#6b8e23] font-medium hover:text-[#5a7720]"
+        >
+          Open Notes <i class="fas fa-arrow-right ml-2"></i>
+        </a>
       </div>
-    </section>
 
-    <!-- Features Section -->
+    
+      <div
+        class="topic-card bg-white rounded-lg shadow-md p-6 border-t-4 border-[#c41e3a]"
+      >
+        <div class="topic-icon bg-[#fbe7eb] text-[#c41e3a] mb-4 w-12 h-12 flex items-center justify-center rounded-lg">
+          <i class="fas fa-project-diagram text-xl"></i>
+        </div>
+        <h3 class="text-lg md:text-xl font-semibold text-gray-800 mb-2">
+          Advanced Data Modeling
+        </h3>
+        <p class="text-gray-600 mb-4">
+          Deep dive into advanced modeling techniques and complex database design patterns.
+        </p>
+        <a
+          href="advanced-data-modeling.html"
+          class="inline-flex items-center text-[#c41e3a] font-medium hover:text-[#a71932]"
+        >
+          Open Notes <i class="fas fa-arrow-right ml-2"></i>
+        </a>
+      </div>
+
+
+      <div
+        class="topic-card bg-white rounded-lg shadow-md p-6 border-t-4 border-[#ff6b35]"
+      >
+        <div class="topic-icon bg-[#fff0e8] text-[#ff6b35] mb-4 w-12 h-12 flex items-center justify-center rounded-lg">
+          <i class="fas fa-network-wired text-xl"></i>
+        </div>
+        <h3 class="text-lg md:text-xl font-semibold text-gray-800 mb-2">
+          Distributed DBMS
+        </h3>
+        <p class="text-gray-600 mb-4">
+          Study distributed database architectures, transparency features, and fragmentation strategies.
+        </p>
+        <a
+          href="distributed-database-manage-system.html"
+          class="inline-flex items-center text-[#ff6b35] font-medium hover:text-[#e55a2b]"
+        >
+          Open Notes <i class="fas fa-arrow-right ml-2"></i>
+        </a>
+      </div>
+
+      <div
+        class="topic-card bg-white rounded-lg shadow-md p-6 border-t-4 border-[#c41e3a]"
+      >
+        <div class="topic-icon bg-[#fbe7eb] text-[#c41e3a] mb-4 w-12 h-12 flex items-center justify-center rounded-lg">
+          <i class="fas fa-exchange-alt text-xl"></i>
+        </div>
+        <h3 class="text-lg md:text-xl font-semibold text-gray-800 mb-2">
+          Transaction Management
+        </h3>
+        <p class="text-gray-600 mb-4">
+          Understand ACID properties, concurrency control, and recovery techniques.
+        </p>
+        <a
+          href="transaction-management.html"
+          class="inline-flex items-center text-[#c41e3a] font-medium hover:text-[#a71932]"
+        >
+          Open Notes <i class="fas fa-arrow-right ml-2"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+
     <section id="features" class="py-16 bg-[#f8f9fa]">
-      <div class="max-w-6xl mx-auto px-4">
-        <h2 class="text-3xl font-bold text-center text-gray-800 mb-4">
-          Key Features
-        </h2>
-        <p class="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
+      <div class="max-w-6xl mx-auto px-4 text-center">
+        <h2 class="text-3xl font-bold text-gray-800 mb-4">Key Features</h2>
+        <p class="text-gray-600 mb-12 max-w-2xl mx-auto">
           Our study resources are designed specifically for NAS students to
           excel in their coursework
         </p>
-
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div class="bg-white p-6 rounded-lg shadow-md text-center">
-            <div class="feature-icon bg-[#f0f5e1] text-[#6b8e23] mx-auto">
-              <i class="fas fa-flask text-2xl"></i>
-            </div>
-            <h3 class="text-xl font-semibold mb-2">Interactive Quizzes</h3>
+          <div class="bg-white p-6 rounded-lg shadow-md">
+            <i class="fas fa-flask text-2xl text-[#6b8e23] mb-4"></i>
+            <h3 class="text-lg md:text-xl font-semibold mb-2">
+              Interactive Quizzes
+            </h3>
             <p class="text-gray-600">
               Test your knowledge with interactive quizzes that reinforce key
-              concepts from each chapter.
+              concepts.
             </p>
           </div>
-
-          <div class="bg-white p-6 rounded-lg shadow-md text-center">
-            <div class="feature-icon bg-[#fbe7eb] text-[#c41e3a] mx-auto">
-              <i class="fas fa-bolt text-2xl"></i>
-            </div>
-            <h3 class="text-xl font-semibold mb-2">Flash Cards</h3>
+          <div class="bg-white p-6 rounded-lg shadow-md">
+            <i class="fas fa-bolt text-2xl text-[#c41e3a] mb-4"></i>
+            <h3 class="text-lg md:text-xl font-semibold mb-2">Flash Cards</h3>
             <p class="text-gray-600">
               Master terminology and definitions with digital flash cards for
               efficient memorization.
             </p>
           </div>
-
-          <div class="bg-white p-6 rounded-lg shadow-md text-center">
-            <div class="feature-icon bg-[#fff0e8] text-[#ff6b35] mx-auto">
-              <i class="fas fa-sync-alt text-2xl"></i>
-            </div>
-            <h3 class="text-xl font-semibold mb-2">Regular Updates</h3>
+          <div class="bg-white p-6 rounded-lg shadow-md">
+            <i class="fas fa-sync-alt text-2xl text-[#ff6b35] mb-4"></i>
+            <h3 class="text-lg md:text-xl font-semibold mb-2">
+              Regular Updates
+            </h3>
             <p class="text-gray-600">
               Content is continuously updated to align with the latest
               curriculum and course materials.
@@ -346,32 +296,23 @@
       </div>
     </section>
 
-    <!-- About Section -->
+  
     <section id="about" class="py-16 bg-white">
       <div class="max-w-6xl mx-auto px-4">
-        <h2 class="text-3xl font-bold text-center text-gray-800 mb-4">
+        <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">
           About This Project
         </h2>
-
         <div class="bg-[#f0f5e1] rounded-lg p-8 mb-8">
-          <h3 class="text-2xl font-semibold text-[#6b8e23] mb-4">
-            Our Mission
-          </h3>
+          <h3 class="text-2xl font-semibold text-[#6b8e23] mb-4">Our Mission</h3>
           <p class="text-gray-700 mb-4">
             This study hub was created to support Sol Plaatje University
-            students in the Natural and Applied Sciences faculty, specifically
-            those studying Information Systems III, Data Science, and Computer
-            Science. Our goal is to provide comprehensive, well-organized study
-            materials that complement classroom learning and help students excel
-            in their studies.
+            students in NAS, specifically those studying IS, DS, and CS.
           </p>
           <p class="text-gray-700">
-            All notes are carefully curated to highlight the most important
-            concepts from each module, with interactive elements like quizzes
-            and flashcards to enhance learning and retention.
+            All notes are carefully curated to highlight important concepts, with
+            interactive elements like quizzes and flashcards to enhance learning.
           </p>
         </div>
-
         <div class="bg-[#fbe7eb] rounded-lg p-8">
           <h3 class="text-2xl font-semibold text-[#c41e3a] mb-4">
             About the Creator
@@ -386,54 +327,37 @@
             </div>
             <div>
               <p class="text-gray-700 mb-4">
-                This study tool was created by
+                Created by
                 <a
                   href="https://github.com/jethusang"
                   target="_blank"
                   class="text-[#6b8e23] font-medium hover:underline"
                   >Johannes Ethusang</a
-                >, a 3rd year ICT student at Sol Plaatje University passionate
-                about creating educational resources that make learning more
-                accessible and effective.
+                >, a 3rd year ICT student passionate about creating educational
+                resources.
               </p>
-              <p class="text-gray-700 mb-4">
-                The project is open source and available on GitHub, where
-                contributions and suggestions are welcome from both students and
-                educators.
-              </p>
-              <div class="bg-[#fff0e8] p-4 rounded-lg mb-4">
-                <h4 class="font-semibold text-[#ff6b35] mb-2">
-                  Want to contribute?
-                </h4>
-                <p class="text-gray-700 mb-2">
-                  NAS students are encouraged to contact Johannes to contribute
-                  to this repository and help improve these resources for
-                  everyone.
-                </p>
-                <a
-                  href="https://github.com/jethusang"
-                  target="_blank"
-                  class="inline-flex items-center bg-[#6b8e23] text-white px-4 py-2 rounded-lg hover:bg-[#5a7720] transition duration-300"
-                >
-                  <i class="fab fa-github mr-2"></i> Contribute on GitHub
-                </a>
-              </div>
+              <a
+                href="https://github.com/jethusang"
+                target="_blank"
+                class="inline-flex items-center bg-[#6b8e23] text-white px-4 py-2 rounded-lg hover:bg-[#5a7720] transition duration-300"
+              >
+                <i class="fab fa-github mr-2"></i> Contribute on GitHub
+              </a>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Contact Section -->
+  
     <section id="contact" class="py-16 bg-[#f8f9fa]">
       <div class="max-w-6xl mx-auto px-4">
         <h2 class="text-3xl font-bold text-center text-gray-800 mb-4">
           Get In Touch
         </h2>
         <p class="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
-          Have questions or want to contribute? Reach out to us!
+          Have questions or want to contribute? Reach out!
         </p>
-
         <div class="bg-white rounded-lg shadow-md p-8">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
@@ -441,8 +365,7 @@
                 Contact Johannes
               </h3>
               <p class="text-gray-700 mb-4">
-                If you're a SPU NAS student interested in contributing to this
-                project or have suggestions for improvement, please reach out:
+                Interested in contributing? Reach out via GitHub or email.
               </p>
               <div class="flex items-center mb-3">
                 <i class="fab fa-github text-[#6b8e23] text-xl mr-3"></i>
@@ -458,162 +381,108 @@
                 <span class="text-gray-700">ethusangjohannes@gmail.com</span>
               </div>
             </div>
-
             <div>
               <h3 class="text-xl font-semibold text-[#6b8e23] mb-4">
                 Join Our NAS Community
               </h3>
               <p class="text-gray-700 mb-4">
-                Connect with other SPU NAS students studying Information
-                Systems, Data Science, and Computer Science:
+                Connect with other SPU NAS students studying IS, DS, and CS:
               </p>
-              <div class="flex space-x-4">
-                <a
-                  href="whatsapp://send?text=Hey I will like to contribute to SPU Nas Study Tool !&phone=+27 69 812 1835"
-                  class="bg-[#6b8e23] text-white p-3 rounded-full hover:bg-[#5a7720] transition duration-300"
-                >
-                  <i class="fab fa-whatsapp text-xl"></i>
-                </a>
-              </div>
+              <a
+                href="whatsapp://send?text=Hey I will like to contribute to SPU Nas Study Tool !&phone=+27 69 812 1835"
+                class="bg-[#6b8e23] text-white p-3 rounded-full hover:bg-[#5a7720] transition duration-300 inline-flex items-center"
+              >
+                <i class="fab fa-whatsapp text-xl"></i>
+              </a>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="bg-[#2c3e20] text-white py-12">
+
+    <footer class="bg-[#2c3e20] text-white py-12 mt-12">
       <div class="container mx-auto px-6">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 text-center md:text-left">
           <div>
-            <h3 class="text-xl font-semibold mb-4">SPU NAS Study Hub</h3>
+            <h3 class="text-lg md:text-xl font-semibold mb-4">SPU NAS
+            <h3 class="text-lg md:text-xl font-semibold mb-4">SPU NAS Study Hub</h3>
             <p class="text-gray-400">
-              Study resources for Natural and Applied Sciences students at Sol
-              Plaatje University.
+              Study resources for Natural and Applied Sciences students at Sol Plaatje University.
             </p>
           </div>
 
           <div>
-            <h3 class="text-xl font-semibold mb-4">Study Notes</h3>
+            <h3 class="text-lg md:text-xl font-semibold mb-4">Study Notes</h3>
             <ul class="space-y-2">
-              <li>
-                <a
-                  href="#"
-                  class="text-gray-400 hover:text-white transition duration-300"
-                  >Database Modeling</a
-                >
-              </li>
-              <li>
-                <a
-                  href="#"
-                  class="text-gray-400 hover:text-white transition duration-300"
-                  >Data Science</a
-                >
-              </li>
-              <li>
-                <a
-                  href="#"
-                  class="text-gray-400 hover:text-white transition duration-300"
-                  >Computer Science</a
-                >
-              </li>
-              <li>
-                <a
-                  href="#"
-                  class="text-gray-400 hover:text-white transition duration-300"
-                  >All Courses</a
-                >
-              </li>
+              <li><a href="#" class="text-gray-400 hover:text-white">Database Modeling</a></li>
+              <li><a href="#" class="text-gray-400 hover:text-white">Data Science</a></li>
+              <li><a href="#" class="text-gray-400 hover:text-white">Computer Science</a></li>
+              <li><a href="#" class="text-gray-400 hover:text-white">All Courses</a></li>
             </ul>
           </div>
 
           <div>
-            <h3 class="text-xl font-semibold mb-4">Resources</h3>
+            <h3 class="text-lg md:text-xl font-semibold mb-4">Resources</h3>
             <ul class="space-y-2">
-              <li>
-                <a
-                  href="#"
-                  class="text-gray-400 hover:text-white transition duration-300"
-                  >Quiz Portal</a
-                >
-              </li>
-              <li>
-                <a
-                  href="#"
-                  class="text-gray-400 hover:text-white transition duration-300"
-                  >Flashcards</a
-                >
-              </li>
-              <li>
-                <a
-                  href="#"
-                  class="text-gray-400 hover:text-white transition duration-300"
-                  >Study Guides</a
-                >
-              </li>
-              <li>
-                <a
-                  href="#"
-                  class="text-gray-400 hover:text-white transition duration-300"
-                  >Video Tutorials</a
-                >
-              </li>
+              <li><a href="#" class="text-gray-400 hover:text-white">Quiz Portal</a></li>
+              <li><a href="#" class="text-gray-400 hover:text-white">Flashcards</a></li>
+              <li><a href="#" class="text-gray-400 hover:text-white">Study Guides</a></li>
+              <li><a href="#" class="text-gray-400 hover:text-white">Video Tutorials</a></li>
             </ul>
           </div>
 
           <div>
-            <h3 class="text-xl font-semibold mb-4">Connect</h3>
-            <div class="flex space-x-4">
-              <a
-                href="https://github.com/jethusang"
-                target="_blank"
-                class="text-gray-400 hover:text-white transition duration-300"
-              >
+            <h3 class="text-lg md:text-xl font-semibold mb-4">Connect</h3>
+            <div class="flex justify-center md:justify-start space-x-4">
+              <a href="https://github.com/jethusang" target="_blank" class="text-gray-400 hover:text-white">
                 <i class="fab fa-github text-xl"></i>
               </a>
-              <a
-                href="#"
-                class="text-gray-400 hover:text-white transition duration-300"
-              >
+              <a href="#" class="text-gray-400 hover:text-white">
                 <i class="fab fa-twitter text-xl"></i>
               </a>
-              <a
-                href="https://linkedin.com/in/johannes-ethusang"
-                 target="_blank"
-                class="text-gray-400 hover:text-white transition duration-300"
-              >
+              <a href="https://linkedin.com/in/johannes-ethusang" target="_blank" class="text-gray-400 hover:text-white">
                 <i class="fab fa-linkedin text-xl"></i>
               </a>
             </div>
             <p class="mt-4 text-gray-400">
               Created by
-              <a
-                href="https://jethusang.github.io/"
-                target="_blank"
-                class="text-[#ff6b35] hover:underline"
-                >Johannes Ethusang</a
-              >
+              <a href="https://jethusang.github.io/" target="_blank" class="text-[#ff6b35] hover:underline">
+                Johannes Ethusang
+              </a>
             </p>
           </div>
         </div>
 
-        <div
-          class="border-t border-[#3d532b] mt-8 pt-8 text-center text-gray-400"
-        >
+        <div class="border-t border-[#3d532b] mt-8 pt-8 text-center text-gray-400">
           <p>© 2025 SPU NAS Study Hub. All rights reserved.</p>
         </div>
       </div>
     </footer>
 
     <script>
-      // Simple JavaScript for mobile menu toggle
-      document
-        .querySelector(".mobile-menu-button")
-        .addEventListener("click", function () {
-          const menu = document.querySelector(".md\\:flex");
-          menu.classList.toggle("hidden");
-          menu.classList.toggle("flex");
-        });
-    </script>
+  const btn = document.querySelector(".mobile-menu-button");
+  const menu = document.querySelector(".mobile-menu");
+  const hamburger = btn.querySelector(".hamburger");
+  const closeIcon = btn.querySelector(".close");
+  const links = document.querySelectorAll(".mobile-menu a");
+
+  function toggleMenu() {
+    menu.classList.toggle("hidden");
+    hamburger.classList.toggle("hidden");
+    closeIcon.classList.toggle("hidden");
+  }
+
+  btn.addEventListener("click", toggleMenu);
+
+  links.forEach(link => {
+    link.addEventListener("click", () => {
+      menu.classList.add("hidden");
+      hamburger.classList.remove("hidden");
+      closeIcon.classList.add("hidden");
+    });
+  });
+</script>
+
   </body>
 </html>
