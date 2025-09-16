@@ -1,1096 +1,1468 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Transaction Management & Concurrency Control</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#2563eb',
-                        secondary: '#1e40af',
-                        accent: '#3b82f6',
-                        dark: '#1e293b',
-                        light: '#f1f5f9',
-                        danger: '#ef4444',
-                        success: '#22c55e',
-                        warning: '#f59e0b'
-                    }
-                }
-            }
-        }
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: "#2563eb",
+              secondary: "#1e40af",
+              accent: "#3b82f6",
+              dark: "#1e293b",
+              light: "#f1f5f9",
+              danger: "#ef4444",
+              success: "#22c55e",
+              warning: "#f59e0b",
+            },
+          },
+        },
+      };
     </script>
     <style>
-        .flashcard {
-            perspective: 1000px;
-            height: 300px;
+      .flashcard {
+        perspective: 1000px;
+        height: 300px;
+      }
+
+      .flashcard-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transition: transform 0.6s;
+        transform-style: preserve-3d;
+      }
+
+      .flashcard.flipped .flashcard-inner {
+        transform: rotateY(180deg);
+      }
+
+      .flashcard-front,
+      .flashcard-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .flashcard-back {
+        transform: rotateY(180deg);
+      }
+
+      .progress-bar {
+        height: 10px;
+        border-radius: 5px;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        transition: width 0.5s ease;
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+        animation: fadeIn 0.5s;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
         }
-        
-        .flashcard-inner {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            transition: transform 0.6s;
-            transform-style: preserve-3d;
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
-        
-        .flashcard.flipped .flashcard-inner {
-            transform: rotateY(180deg);
-        }
-        
-        .flashcard-front, .flashcard-back {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            backface-visibility: hidden;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            padding: 30px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .flashcard-back {
-            transform: rotateY(180deg);
-        }
-        
-        .progress-bar {
-            height: 10px;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            transition: width 0.5s ease;
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-            animation: fadeIn 0.5s;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .card-hover:hover {
-            transform: translateY(-5px);
-            transition: transform 0.3s;
-        }
-        
-        .quiz-option {
-            transition: all 0.2s;
-        }
-        
-        .quiz-option:hover {
-            background-color: #e0f2fe;
-        }
-        
-        .correct-answer {
-            background-color: #dcfce7;
-            border-left: 4px solid #22c55e;
-        }
-        
-        .incorrect-answer {
-            background-color: #fee2e2;
-            border-left: 4px solid #ef4444;
-        }
-        
-        .explanation-box {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.5s ease;
-        }
-        
-        .explanation-box.open {
-            max-height: 500px;
-        }
-        
-        .diagram-container {
-            background-color: #f8fafc;
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            border: 1px solid #e2e8f0;
-        }
-        
-        .transaction-node {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 120px;
-            height: 50px;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            position: relative;
-        }
-        
-        .transaction-arrow {
-            position: absolute;
-            height: 2px;
-            background-color: #94a3b8;
-            z-index: -1;
-        }
-        
-        .lock-icon {
-            position: absolute;
-            background: white;
-            border-radius: 50%;
-            padding: 3px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .transaction-timeline {
-            display: flex;
-            justify-content: space-between;
-            position: relative;
-            padding: 20px 0;
-        }
-        
-        .timeline-marker {
-            width: 20px;
-            height: 20px;
-            background-color: #cbd5e1;
-            border-radius: 50%;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .timeline-connector {
-            position: absolute;
-            top: 30px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background-color: #cbd5e1;
-            z-index: 0;
-        }
-        
-        .timeline-content {
-            position: absolute;
-            top: 45px;
-            width: 200px;
-            padding: 10px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            font-size: 0.875rem;
-        }
-        
-        .phase-card {
-            border-left: 4px solid;
-            transition: all 0.3s;
-        }
-        
-        .phase-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-        }
+      }
+
+      .card-hover:hover {
+        transform: translateY(-5px);
+        transition: transform 0.3s;
+      }
+
+      .quiz-option {
+        transition: all 0.2s;
+      }
+
+      .quiz-option:hover {
+        background-color: #e0f2fe;
+      }
+
+      .correct-answer {
+        background-color: #dcfce7;
+        border-left: 4px solid #22c55e;
+      }
+
+      .incorrect-answer {
+        background-color: #fee2e2;
+        border-left: 4px solid #ef4444;
+      }
+
+      .explanation-box {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.5s ease;
+      }
+
+      .explanation-box.open {
+        max-height: 500px;
+      }
+
+      .diagram-container {
+        background-color: #f8fafc;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        border: 1px solid #e2e8f0;
+      }
+
+      .transaction-node {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 120px;
+        height: 50px;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        position: relative;
+      }
+
+      .transaction-arrow {
+        position: absolute;
+        height: 2px;
+        background-color: #94a3b8;
+        z-index: -1;
+      }
+
+      .lock-icon {
+        position: absolute;
+        background: white;
+        border-radius: 50%;
+        padding: 3px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .transaction-timeline {
+        display: flex;
+        justify-content: space-between;
+        position: relative;
+        padding: 20px 0;
+      }
+
+      .timeline-marker {
+        width: 20px;
+        height: 20px;
+        background-color: #cbd5e1;
+        border-radius: 50%;
+        position: relative;
+        z-index: 1;
+      }
+
+      .timeline-connector {
+        position: absolute;
+        top: 30px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: #cbd5e1;
+        z-index: 0;
+      }
+
+      .timeline-content {
+        position: absolute;
+        top: 45px;
+        width: 200px;
+        padding: 10px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        font-size: 0.875rem;
+      }
+
+      .phase-card {
+        border-left: 4px solid;
+        transition: all 0.3s;
+      }
+
+      .phase-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      }
+      .floating-btn {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 50;
+        background-color: #2563eb;
+        color: white;
+        padding: 16px;
+        border-radius: 50%;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s;
+      }
+      .floating-btn:hover {
+        background-color: #1e40af;
+        transform: scale(1.1);
+      }
     </style>
-</head>
-<body class="bg-gray-50 font-sans">
- 
+  </head>
+  <body class="bg-gray-50 font-sans">
     <header class="bg-white shadow-md">
-        <div class="container mx-auto px-4 py-6">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h1 class="text-3xl font-bold text-dark">Transaction Management & Concurrency Control</h1>
-                    <p class="text-gray-600">Study Tool for Database Transactions</p>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <div class="bg-primary text-white px-4 py-2 rounded-lg flex items-center">
-                        <i class="fas fa-database mr-2"></i>
-                        <span>Study Mode</span>
-                    </div>
-                </div>
+      <div class="container mx-auto px-4 py-6">
+        <div class="flex justify-between items-center">
+          <div>
+            <h1 class="text-3xl font-bold text-dark">
+              Transaction Management & Concurrency Control
+            </h1>
+            <p class="text-gray-600">Study Tool for Database Transactions</p>
+          </div>
+          <div class="flex items-center space-x-4">
+            <div
+              class="bg-primary text-white px-4 py-2 rounded-lg flex items-center"
+            >
+              <i class="fas fa-database mr-2"></i>
+              <span>Study Mode</span>
             </div>
+          </div>
         </div>
+      </div>
     </header>
 
-
     <main class="container mx-auto px-4 py-8">
-      
-        <div class="flex border-b border-gray-200 mb-8 overflow-x-auto">
-            <button class="tab-btn px-4 py-3 font-medium text-gray-600 hover:text-primary transition-all border-b-2 border-transparent hover:border-primary whitespace-nowrap" data-tab="overview">
-                <i class="fas fa-home mr-2"></i>Overview
-            </button>
-            <button class="tab-btn px-4 py-3 font-medium text-gray-600 hover:text-primary transition-all border-b-2 border-transparent hover:border-primary whitespace-nowrap" data-tab="acid">
-                <i class="fas fa-shield-alt mr-2"></i>ACID Properties
-            </button>
-            <button class="tab-btn px-4 py-3 font-medium text-gray-600 hover:text-primary transition-all border-b-2 border-transparent hover:border-primary whitespace-nowrap" data-tab="concurrency">
-                <i class="fas fa-sync-alt mr-2"></i>Concurrency Control
-            </button>
-            <button class="tab-btn px-4 py-3 font-medium text-gray-600 hover:text-primary transition-all border-b-2 border-transparent hover:border-primary whitespace-nowrap" data-tab="locking">
-                <i class="fas fa-lock mr-2"></i>Locking Methods
-            </button>
-            <button class="tab-btn px-4 py-3 font-medium text-gray-600 hover:text-primary transition-all border-b-2 border-transparent hover:border-primary whitespace-nowrap" data-tab="recovery">
-                <i class="fas fa-redo mr-2"></i>Recovery
-            </button>
-            <button class="tab-btn px-4 py-3 font-medium text-gray-600 hover:text-primary transition-all border-b-2 border-transparent hover:border-primary whitespace-nowrap" data-tab="flashcards">
-                <i class="fas fa-layer-group mr-2"></i>Flashcards
-            </button>
-            <button class="tab-btn px-4 py-3 font-medium text-gray-600 hover:text-primary transition-all border-b-2 border-transparent hover:border-primary whitespace-nowrap" data-tab="quiz">
-                <i class="fas fa-question-circle mr-2"></i>Quiz
-            </button>
+      <div class="flex border-b border-gray-200 mb-8 overflow-x-auto">
+        <button
+          class="tab-btn px-4 py-3 font-medium text-gray-600 hover:text-primary transition-all border-b-2 border-transparent hover:border-primary whitespace-nowrap"
+          data-tab="overview"
+        >
+          <i class="fas fa-home mr-2"></i>Overview
+        </button>
+        <button
+          class="tab-btn px-4 py-3 font-medium text-gray-600 hover:text-primary transition-all border-b-2 border-transparent hover:border-primary whitespace-nowrap"
+          data-tab="acid"
+        >
+          <i class="fas fa-shield-alt mr-2"></i>ACID Properties
+        </button>
+        <button
+          class="tab-btn px-4 py-3 font-medium text-gray-600 hover:text-primary transition-all border-b-2 border-transparent hover:border-primary whitespace-nowrap"
+          data-tab="concurrency"
+        >
+          <i class="fas fa-sync-alt mr-2"></i>Concurrency Control
+        </button>
+        <button
+          class="tab-btn px-4 py-3 font-medium text-gray-600 hover:text-primary transition-all border-b-2 border-transparent hover:border-primary whitespace-nowrap"
+          data-tab="locking"
+        >
+          <i class="fas fa-lock mr-2"></i>Locking Methods
+        </button>
+        <button
+          class="tab-btn px-4 py-3 font-medium text-gray-600 hover:text-primary transition-all border-b-2 border-transparent hover:border-primary whitespace-nowrap"
+          data-tab="recovery"
+        >
+          <i class="fas fa-redo mr-2"></i>Recovery
+        </button>
+        <button
+          class="tab-btn px-4 py-3 font-medium text-gray-600 hover:text-primary transition-all border-b-2 border-transparent hover:border-primary whitespace-nowrap"
+          data-tab="flashcards"
+        >
+          <i class="fas fa-layer-group mr-2"></i>Flashcards
+        </button>
+        <button
+          class="tab-btn px-4 py-3 font-medium text-gray-600 hover:text-primary transition-all border-b-2 border-transparent hover:border-primary whitespace-nowrap"
+          data-tab="quiz"
+        >
+          <i class="fas fa-question-circle mr-2"></i>Quiz
+        </button>
+      </div>
+
+      <div class="tab-content active" id="overview">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+            <div class="text-primary text-4xl mb-4">
+              <i class="fas fa-exchange-alt"></i>
+            </div>
+            <h3 class="text-xl font-bold mb-2">Transactions</h3>
+            <p class="text-gray-600 mb-4">
+              A logical unit of work that must be either entirely completed or
+              aborted. Changes database from one consistent state to another.
+            </p>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-500">5 key concepts</span>
+              <button class="text-primary hover:text-secondary">
+                <i class="fas fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+            <div class="text-warning text-4xl mb-4">
+              <i class="fas fa-users"></i>
+            </div>
+            <h3 class="text-xl font-bold mb-2">Concurrency Issues</h3>
+            <p class="text-gray-600 mb-4">
+              Simultaneous execution of transactions can cause lost updates,
+              uncommitted data, and inconsistent retrievals.
+            </p>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-500">3 main problems</span>
+              <button class="text-primary hover:text-secondary">
+                <i class="fas fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-md p-6 card-hover">
+            <div class="text-success text-4xl mb-4">
+              <i class="fas fa-shield-alt"></i>
+            </div>
+            <h3 class="text-xl font-bold mb-2">Recovery</h3>
+            <p class="text-gray-600 mb-4">
+              Process of restoring database to consistent state after failure
+              using transaction logs and backup techniques.
+            </p>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-500">3 phase process</span>
+              <button class="text-primary hover:text-secondary">
+                <i class="fas fa-arrow-right"></i>
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div class="tab-content active" id="overview">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
-                    <div class="text-primary text-4xl mb-4">
-                        <i class="fas fa-exchange-alt"></i>
-                    </div>
-                    <h3 class="text-xl font-bold mb-2">Transactions</h3>
-                    <p class="text-gray-600 mb-4">A logical unit of work that must be either entirely completed or aborted. Changes database from one consistent state to another.</p>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-500">5 key concepts</span>
-                        <button class="text-primary hover:text-secondary">
-                            <i class="fas fa-arrow-right"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
-                    <div class="text-warning text-4xl mb-4">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <h3 class="text-xl font-bold mb-2">Concurrency Issues</h3>
-                    <p class="text-gray-600 mb-4">Simultaneous execution of transactions can cause lost updates, uncommitted data, and inconsistent retrievals.</p>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-500">3 main problems</span>
-                        <button class="text-primary hover:text-secondary">
-                            <i class="fas fa-arrow-right"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="bg-white rounded-xl shadow-md p-6 card-hover">
-                    <div class="text-success text-4xl mb-4">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <h3 class="text-xl font-bold mb-2">Recovery</h3>
-                    <p class="text-gray-600 mb-4">Process of restoring database to consistent state after failure using transaction logs and backup techniques.</p>
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-500">3 phase process</span>
-                        <button class="text-primary hover:text-secondary">
-                            <i class="fas fa-arrow-right"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-                <h2 class="text-2xl font-bold mb-4 text-dark">Transaction Management Fundamentals</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <p class="text-gray-700 mb-4">
-                            In database systems, a <span class="font-bold">transaction</span> is any action that reads from and/or writes to the database. 
-                            Transactions can range from simple SELECT statements to complex combinations of INSERT, UPDATE, and DELETE operations.
-                        </p>
-                        <p class="text-gray-700 mb-4">
-                            Transactions must adhere to the <span class="font-bold">ACID properties</span> (Atomicity, Consistency, Isolation, Durability) 
-                            to ensure database integrity and reliability.
-                        </p>
-                        <div class="bg-blue-50 border-l-4 border-primary p-4 rounded mb-4">
-                            <p class="text-gray-700">
-                                <span class="font-bold">Key Insight:</span> Improper or incomplete transactions can have devastating effects on database integrity. 
-                                DBMSs use transaction logs to track all changes for recovery purposes.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="diagram-container">
-                        <h3 class="font-bold text-lg mb-4 text-center">Transaction States</h3>
-                        <div class="flex justify-center">
-                            <div class="transaction-timeline w-full max-w-3xl">
-                                <div class="timeline-connector"></div>
-                                
-                                <div class="flex flex-col items-center">
-                                    <div class="timeline-marker"></div>
-                                    <div class="timeline-content">
-                                        <div class="font-bold text-primary">Active</div>
-                                        <p class="text-xs">Transaction is executing operations</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex flex-col items-center">
-                                    <div class="timeline-marker"></div>
-                                    <div class="timeline-content">
-                                        <div class="font-bold text-warning">Partially Committed</div>
-                                        <p class="text-xs">Final statement executed</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex flex-col items-center">
-                                    <div class="timeline-marker"></div>
-                                    <div class="timeline-content">
-                                        <div class="font-bold text-success">Committed</div>
-                                        <p class="text-xs">Changes permanently saved</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex flex-col items-center">
-                                    <div class="timeline-marker bg-danger"></div>
-                                    <div class="timeline-content">
-                                        <div class="font-bold text-danger">Failed</div>
-                                        <p class="text-xs">Execution cannot proceed</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex flex-col items-center">
-                                    <div class="timeline-marker bg-gray-600"></div>
-                                    <div class="timeline-content">
-                                        <div class="font-bold text-gray-600">Aborted</div>
-                                        <p class="text-xs">Changes rolled back</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white rounded-xl shadow-md p-6">
-                    <h3 class="text-xl font-bold mb-4 text-dark">Transaction Management with SQL</h3>
-                    <ul class="space-y-2">
-                        <li class="flex items-start">
-                            <i class="fas fa-check-circle text-success mt-1 mr-2"></i>
-                            <span><span class="font-bold">COMMIT</span> - Permanently saves all changes made by the transaction</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check-circle text-success mt-1 mr-2"></i>
-                            <span><span class="font-bold">ROLLBACK</span> - Undoes all changes made by the transaction</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check-circle text-success mt-1 mr-2"></i>
-                            <span>Successful program end is equivalent to COMMIT</span>
-                        </li>
-                        <li class="flex items-start">
-                            <i class="fas fa-check-circle text-success mt-1 mr-2"></i>
-                            <span>Abnormal program termination results in ROLLBACK</span>
-                        </li>
-                    </ul>
-                </div>
-                
-                <div class="bg-white rounded-xl shadow-md p-6">
-                    <h3 class="text-xl font-bold mb-4 text-dark">Transaction Log</h3>
-                    <div class="space-y-2">
-                        <div class="flex items-start">
-                            <i class="fas fa-file-alt text-primary mt-1 mr-2"></i>
-                            <span>Tracks all transactions that update the database</span>
-                        </div>
-                        <div class="flex items-start">
-                            <i class="fas fa-info-circle text-primary mt-1 mr-2"></i>
-                            <span>Contains before and after values for updated fields</span>
-                        </div>
-                        <div class="flex items-start">
-                            <i class="fas fa-shield-alt text-primary mt-1 mr-2"></i>
-                            <span>Essential for database recovery after failures</span>
-                        </div>
-                        <div class="flex items-start">
-                            <i class="fas fa-sync-alt text-primary mt-1 mr-2"></i>
-                            <span>Maintained on several disks to reduce failure risk</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-content" id="acid">
-            <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-                <h2 class="text-2xl font-bold mb-6 text-dark">ACID Transaction Properties</h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <div class="phase-card bg-blue-50 border-primary p-5 rounded-lg">
-                        <h3 class="text-xl font-bold text-primary mb-3">Atomicity</h3>
-                        <p class="text-gray-700 mb-3">Requires that all operations of a transaction be completed; if not, the transaction is aborted.</p>
-                        <div class="flex items-center text-sm text-gray-600">
-                            <i class="fas fa-check-circle text-primary mr-2"></i>
-                            <span>All or nothing - entire transaction succeeds or fails</span>
-                        </div>
-                    </div>
-                    
-                    <div class="phase-card bg-green-50 border-success p-5 rounded-lg">
-                        <h3 class="text-xl font-bold text-success mb-3">Consistency</h3>
-                        <p class="text-gray-700 mb-3">Ensures the database changes from one consistent state to another after transaction completion.</p>
-                        <div class="flex items-center text-sm text-gray-600">
-                            <i class="fas fa-check-circle text-success mr-2"></i>
-                            <span>All data integrity constraints are satisfied</span>
-                        </div>
-                    </div>
-                    
-                    <div class="phase-card bg-purple-50 border-purple-500 p-5 rounded-lg">
-                        <h3 class="text-xl font-bold text-purple-700 mb-3">Isolation</h3>
-                        <p class="text-gray-700 mb-3">Data used during transaction execution cannot be used by other transactions until the first completes.</p>
-                        <div class="flex items-center text-sm text-gray-600">
-                            <i class="fas fa-check-circle text-purple-700 mr-2"></i>
-                            <span>Transactions execute independently without interference</span>
-                        </div>
-                    </div>
-                    
-                    <div class="phase-card bg-yellow-50 border-warning p-5 rounded-lg">
-                        <h3 class="text-xl font-bold text-warning mb-3">Durability</h3>
-                        <p class="text-gray-700 mb-3">Ensures permanence of database's consistent state after transaction completion.</p>
-                        <div class="flex items-center text-sm text-gray-600">
-                            <i class="fas fa-check-circle text-warning mr-2"></i>
-                            <span>Committed changes survive system failures</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-gray-50 p-6 rounded-lg mb-8">
-                    <h3 class="text-xl font-semibold mb-4 text-dark">Importance of ACID Properties</h3>
-                    <p class="text-gray-700 mb-4">
-                        ACID properties are fundamental to reliable transaction processing in databases. They ensure that even in the event of system failures, 
-                        concurrent access, or errors, the database remains in a consistent state and transactions complete successfully.
-                    </p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="bg-white p-4 rounded-lg">
-                            <h4 class="font-bold text-primary mb-2">Without ACID</h4>
-                            <ul class="list-disc pl-5 text-gray-700">
-                                <li>Partial updates causing data corruption</li>
-                                <li>Inconsistent views of data during transactions</li>
-                                <li>Lost updates from concurrent access</li>
-                                <li>Data loss during system failures</li>
-                            </ul>
-                        </div>
-                        <div class="bg-white p-4 rounded-lg">
-                            <h4 class="font-bold text-success mb-2">With ACID</h4>
-                            <ul class="list-disc pl-5 text-gray-700">
-                                <li>Guaranteed data integrity and consistency</li>
-                                <li>Reliable transaction processing</li>
-                                <li>Safe concurrent access by multiple users</li>
-                                <li>Recovery from system failures</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-content" id="concurrency">
-            <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-                <h2 class="text-2xl font-bold mb-6 text-dark">Concurrency Control</h2>
-                <p class="text-gray-700 mb-6">
-                    Concurrency control coordinates the simultaneous execution of transactions in a multiprocessing database. 
-                    Its objective is to ensure serializability of transactions in a multiuser environment, preventing data integrity issues.
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+          <h2 class="text-2xl font-bold mb-4 text-dark">
+            Transaction Management Fundamentals
+          </h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <p class="text-gray-700 mb-4">
+                In database systems, a
+                <span class="font-bold">transaction</span> is any action that
+                reads from and/or writes to the database. Transactions can range
+                from simple SELECT statements to complex combinations of INSERT,
+                UPDATE, and DELETE operations.
+              </p>
+              <p class="text-gray-700 mb-4">
+                Transactions must adhere to the
+                <span class="font-bold">ACID properties</span> (Atomicity,
+                Consistency, Isolation, Durability) to ensure database integrity
+                and reliability.
+              </p>
+              <div
+                class="bg-blue-50 border-l-4 border-primary p-4 rounded mb-4"
+              >
+                <p class="text-gray-700">
+                  <span class="font-bold">Key Insight:</span> Improper or
+                  incomplete transactions can have devastating effects on
+                  database integrity. DBMSs use transaction logs to track all
+                  changes for recovery purposes.
                 </p>
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-red-50 p-5 rounded-lg">
-                        <h3 class="text-xl font-bold text-danger mb-3">Lost Updates</h3>
-                        <p class="text-gray-700 mb-3">Occurs when two transactions access the same data and the first update is overwritten by the second.</p>
-                        <div class="text-sm text-gray-600">
-                            <div class="font-bold mb-1">Example:</div>
-                            <p>T1 reads balance ($500), T2 reads same balance ($500), T1 subtracts $100 ($400), T2 adds $200 ($700), T1's update is lost.</p>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-orange-50 p-5 rounded-lg">
-                        <h3 class="text-xl font-bold text-warning mb-3">Uncommitted Data</h3>
-                        <p class="text-gray-700 mb-3">Occurs when a transaction accesses data that hasn't been committed by another transaction.</p>
-                        <div class="text-sm text-gray-600">
-                            <div class="font-bold mb-1">Example:</div>
-                            <p>T1 updates data but doesn't commit, T2 reads uncommitted data, T1 rolls back - T2 has invalid data.</p>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-yellow-50 p-5 rounded-lg">
-                        <h3 class="text-xl font-bold text-warning mb-3">Inconsistent Retrievals</h3>
-                        <p class="text-gray-700 mb-3">Occurs when a transaction calculates aggregate functions while data is being updated by other transactions.</p>
-                        <div class="text-sm text-gray-600">
-                            <div class="font-bold mb-1">Example:</div>
-                            <p>T1 is summing account balances while T2 transfers money between accounts - sum includes partial updates.</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="diagram-container mb-8">
-                    <h3 class="font-bold text-lg mb-4 text-center">The Scheduler in Concurrency Control</h3>
-                    <div class="flex flex-col items-center">
-                        <div class="w-full max-w-3xl">
-                            <div class="flex justify-between mb-6">
-                                <div class="text-center">
-                                    <div class="bg-primary text-white rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-2">
-                                        <i class="fas fa-user"></i>
-                                    </div>
-                                    <div class="font-bold">User 1</div>
-                                    <div class="text-sm">Transaction T1</div>
-                                </div>
-                                
-                                <div class="text-center">
-                                    <div class="bg-primary text-white rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-2">
-                                        <i class="fas fa-user"></i>
-                                    </div>
-                                    <div class="font-bold">User 2</div>
-                                    <div class="text-sm">Transaction T2</div>
-                                </div>
-                                
-                                <div class="text-center">
-                                    <div class="bg-primary text-white rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-2">
-                                        <i class="fas fa-user"></i>
-                                    </div>
-                                    <div class="font-bold">User 3</div>
-                                    <div class="text-sm">Transaction T3</div>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-gray-200 rounded-lg p-4 mb-6 text-center">
-                                <div class="font-bold text-lg mb-2">Scheduler</div>
-                                <p class="text-sm">Establishes order of operations for concurrent transactions</p>
-                                <p class="text-sm">Uses locking or timestamping to ensure serializability</p>
-                            </div>
-                            
-                            <div class="bg-gray-800 text-white rounded-lg p-4 text-center">
-                                <div class="font-bold">Database</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-blue-50 p-6 rounded-lg">
-                    <h3 class="text-xl font-semibold mb-4 text-dark">Solutions to Concurrency Problems</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="bg-white p-4 rounded-lg">
-                            <h4 class="font-bold text-primary mb-2">Locking Methods</h4>
-                            <p class="text-gray-700">Use locks to control access to data items</p>
-                            <ul class="list-disc pl-5 mt-2 text-sm text-gray-600">
-                                <li>Binary locks</li>
-                                <li>Shared/Exclusive locks</li>
-                                <li>Two-phase locking protocol</li>
-                            </ul>
-                        </div>
-                        <div class="bg-white p-4 rounded-lg">
-                            <h4 class="font-bold text-primary mb-2">Timestamping</h4>
-                            <p class="text-gray-700">Assign global unique timestamp to each transaction</p>
-                            <ul class="list-disc pl-5 mt-2 text-sm text-gray-600">
-                                <li>Transactions processed in timestamp order</li>
-                                <li>Wait/die and wound/wait schemes</li>
-                            </ul>
-                        </div>
-                        <div class="bg-white p-4 rounded-lg">
-                            <h4 class="font-bold text-primary mb-2">Optimistic Methods</h4>
-                            <p class="text-gray-700">Assume few conflicts, validate before commit</p>
-                            <ul class="list-disc pl-5 mt-2 text-sm text-gray-600">
-                                <li>Read phase</li>
-                                <li>Validation phase</li>
-                                <li>Write phase</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
+              </div>
             </div>
+            <div class="diagram-container">
+              <h3 class="font-bold text-lg mb-4 text-center">
+                Transaction States
+              </h3>
+              <div class="flex justify-center">
+                <div class="transaction-timeline w-full max-w-3xl">
+                  <div class="timeline-connector"></div>
+
+                  <div class="flex flex-col items-center">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                      <div class="font-bold text-primary">Active</div>
+                      <p class="text-xs">Transaction is executing operations</p>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col items-center">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                      <div class="font-bold text-warning">
+                        Partially Committed
+                      </div>
+                      <p class="text-xs">Final statement executed</p>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col items-center">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                      <div class="font-bold text-success">Committed</div>
+                      <p class="text-xs">Changes permanently saved</p>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col items-center">
+                    <div class="timeline-marker bg-danger"></div>
+                    <div class="timeline-content">
+                      <div class="font-bold text-danger">Failed</div>
+                      <p class="text-xs">Execution cannot proceed</p>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col items-center">
+                    <div class="timeline-marker bg-gray-600"></div>
+                    <div class="timeline-content">
+                      <div class="font-bold text-gray-600">Aborted</div>
+                      <p class="text-xs">Changes rolled back</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        
-        <div class="tab-content" id="locking">
-            <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-                <h2 class="text-2xl font-bold mb-6 text-dark">Locking Methods in Concurrency Control</h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <div>
-                        <h3 class="text-xl font-semibold mb-4 text-dark">Lock Granularity</h3>
-                        <div class="space-y-4">
-                            <div class="bg-blue-50 p-4 rounded-lg">
-                                <h4 class="font-bold text-primary">Database-Level Lock</h4>
-                                <p class="text-sm text-gray-700">Entire database locked - suitable for batch processing</p>
-                            </div>
-                            <div class="bg-blue-50 p-4 rounded-lg">
-                                <h4 class="font-bold text-primary">Table-Level Lock</h4>
-                                <p class="text-sm text-gray-700">Entire table locked - can cause bottlenecks</p>
-                            </div>
-                            <div class="bg-blue-50 p-4 rounded-lg">
-                                <h4 class="font-bold text-primary">Page-Level Lock</h4>
-                                <p class="text-sm text-gray-700">Disk page locked - most common in multi-user DBMS</p>
-                            </div>
-                            <div class="bg-blue-50 p-4 rounded-lg">
-                                <h4 class="font-bold text-primary">Row-Level Lock</h4>
-                                <p class="text-sm text-gray-700">Single row locked - improves concurrency</p>
-                            </div>
-                            <div class="bg-blue-50 p-4 rounded-lg">
-                                <h4 class="font-bold text-primary">Field-Level Lock</h4>
-                                <p class="text-sm text-gray-700">Single field locked - maximum flexibility</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <h3 class="text-xl font-semibold mb-4 text-dark">Lock Types</h3>
-                        <div class="space-y-4">
-                            <div class="bg-purple-50 p-4 rounded-lg">
-                                <h4 class="font-bold text-purple-700">Binary Locks</h4>
-                                <p class="text-sm text-gray-700">Two states: locked or unlocked. Simple but restrictive.</p>
-                            </div>
-                            <div class="bg-purple-50 p-4 rounded-lg">
-                                <h4 class="font-bold text-purple-700">Shared Locks (S-locks)</h4>
-                                <p class="text-sm text-gray-700">Concurrent transactions can read but not update the data item.</p>
-                            </div>
-                            <div class="bg-purple-50 p-4 rounded-lg">
-                                <h4 class="font-bold text-purple-700">Exclusive Locks (X-locks)</h4>
-                                <p class="text-sm text-gray-700">Reserves exclusive access for writing. No other locks allowed.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="mb-8">
-                    <h3 class="text-xl font-semibold mb-4 text-dark">Two-Phase Locking Protocol</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-gradient-to-r from-blue-100 to-indigo-100 p-6 rounded-lg">
-                            <h4 class="font-bold text-primary text-lg mb-3">Growing Phase</h4>
-                            <p class="text-gray-700 mb-3">Transaction acquires all required locks without unlocking any data.</p>
-                            <ul class="list-disc pl-5 text-gray-700">
-                                <li>Obtain S-lock for read operations</li>
-                                <li>Obtain X-lock for write operations</li>
-                                <li>No locks can be released in this phase</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="bg-gradient-to-r from-green-100 to-teal-100 p-6 rounded-lg">
-                            <h4 class="font-bold text-success text-lg mb-3">Shrinking Phase</h4>
-                            <p class="text-gray-700 mb-3">Transaction releases all locks and cannot obtain any new locks.</p>
-                            <ul class="list-disc pl-5 text-gray-700">
-                                <li>Release locks after operations complete</li>
-                                <li>No new locks can be acquired</li>
-                                <li>Ensures serializability of transactions</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-yellow-50 p-6 rounded-lg">
-                    <h3 class="text-xl font-semibold mb-4 text-dark">Deadlocks</h3>
-                    <p class="text-gray-700 mb-4">
-                        A deadlock occurs when two or more transactions are waiting for each other to release locks, creating a cycle of dependencies. 
-                        Also known as "deadly embrace".
-                    </p>
-                    
-                    <div class="diagram-container mb-6">
-                        <div class="flex justify-center">
-                            <div class="relative" style="width: 300px; height: 200px;">
-                                <div class="transaction-node bg-red-100 absolute" style="top: 20px; left: 20px;">
-                                    T1 holds lock on X
-                                </div>
-                                
-                                <div class="transaction-node bg-blue-100 absolute" style="top: 20px; right: 20px;">
-                                    T2 holds lock on Y
-                                </div>
-                                
-                                <div class="transaction-arrow" style="top: 45px; left: 140px; width: 120px; transform: rotate(45deg);"></div>
-                                <div class="transaction-arrow" style="top: 45px; left: 40px; width: 120px; transform: rotate(-45deg);"></div>
-                                
-                                <div class="lock-icon" style="top: 60px; left: 160px;">
-                                    <i class="fas fa-lock text-danger"></i>
-                                </div>
-                                
-                                <div class="lock-icon" style="top: 60px; left: 60px;">
-                                    <i class="fas fa-lock text-primary"></i>
-                                </div>
-                                
-                                <div class="transaction-node bg-red-100 absolute" style="bottom: 20px; left: 20px;">
-                                    T1 wants lock on Y
-                                </div>
-                                
-                                <div class="transaction-node bg-blue-100 absolute" style="bottom: 20px; right: 20px;">
-                                    T2 wants lock on X
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="bg-white p-4 rounded-lg">
-                            <h4 class="font-bold text-primary mb-2">Deadlock Prevention</h4>
-                            <p class="text-sm text-gray-700">Require transactions to lock all data at once or use ordering</p>
-                        </div>
-                        <div class="bg-white p-4 rounded-lg">
-                            <h4 class="font-bold text-primary mb-2">Deadlock Detection</h4>
-                            <p class="text-sm text-gray-700">Use wait-for graphs to identify cycles</p>
-                        </div>
-                        <div class="bg-white p-4 rounded-lg">
-                            <h4 class="font-bold text-primary mb-2">Deadlock Resolution</h4>
-                            <p class="text-sm text-gray-700">Rollback one transaction to break the cycle</p>
-                        </div>
-                    </div>
-                </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white rounded-xl shadow-md p-6">
+            <h3 class="text-xl font-bold mb-4 text-dark">
+              Transaction Management with SQL
+            </h3>
+            <ul class="space-y-2">
+              <li class="flex items-start">
+                <i class="fas fa-check-circle text-success mt-1 mr-2"></i>
+                <span
+                  ><span class="font-bold">COMMIT</span> - Permanently saves all
+                  changes made by the transaction</span
+                >
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle text-success mt-1 mr-2"></i>
+                <span
+                  ><span class="font-bold">ROLLBACK</span> - Undoes all changes
+                  made by the transaction</span
+                >
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle text-success mt-1 mr-2"></i>
+                <span>Successful program end is equivalent to COMMIT</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check-circle text-success mt-1 mr-2"></i>
+                <span>Abnormal program termination results in ROLLBACK</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-md p-6">
+            <h3 class="text-xl font-bold mb-4 text-dark">Transaction Log</h3>
+            <div class="space-y-2">
+              <div class="flex items-start">
+                <i class="fas fa-file-alt text-primary mt-1 mr-2"></i>
+                <span>Tracks all transactions that update the database</span>
+              </div>
+              <div class="flex items-start">
+                <i class="fas fa-info-circle text-primary mt-1 mr-2"></i>
+                <span>Contains before and after values for updated fields</span>
+              </div>
+              <div class="flex items-start">
+                <i class="fas fa-shield-alt text-primary mt-1 mr-2"></i>
+                <span>Essential for database recovery after failures</span>
+              </div>
+              <div class="flex items-start">
+                <i class="fas fa-sync-alt text-primary mt-1 mr-2"></i>
+                <span>Maintained on several disks to reduce failure risk</span>
+              </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="acid">
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+          <h2 class="text-2xl font-bold mb-6 text-dark">
+            ACID Transaction Properties
+          </h2>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="phase-card bg-blue-50 border-primary p-5 rounded-lg">
+              <h3 class="text-xl font-bold text-primary mb-3">Atomicity</h3>
+              <p class="text-gray-700 mb-3">
+                Requires that all operations of a transaction be completed; if
+                not, the transaction is aborted.
+              </p>
+              <div class="flex items-center text-sm text-gray-600">
+                <i class="fas fa-check-circle text-primary mr-2"></i>
+                <span
+                  >All or nothing - entire transaction succeeds or fails</span
+                >
+              </div>
+            </div>
+
+            <div class="phase-card bg-green-50 border-success p-5 rounded-lg">
+              <h3 class="text-xl font-bold text-success mb-3">Consistency</h3>
+              <p class="text-gray-700 mb-3">
+                Ensures the database changes from one consistent state to
+                another after transaction completion.
+              </p>
+              <div class="flex items-center text-sm text-gray-600">
+                <i class="fas fa-check-circle text-success mr-2"></i>
+                <span>All data integrity constraints are satisfied</span>
+              </div>
+            </div>
+
+            <div
+              class="phase-card bg-purple-50 border-purple-500 p-5 rounded-lg"
+            >
+              <h3 class="text-xl font-bold text-purple-700 mb-3">Isolation</h3>
+              <p class="text-gray-700 mb-3">
+                Data used during transaction execution cannot be used by other
+                transactions until the first completes.
+              </p>
+              <div class="flex items-center text-sm text-gray-600">
+                <i class="fas fa-check-circle text-purple-700 mr-2"></i>
+                <span
+                  >Transactions execute independently without interference</span
+                >
+              </div>
+            </div>
+
+            <div class="phase-card bg-yellow-50 border-warning p-5 rounded-lg">
+              <h3 class="text-xl font-bold text-warning mb-3">Durability</h3>
+              <p class="text-gray-700 mb-3">
+                Ensures permanence of database's consistent state after
+                transaction completion.
+              </p>
+              <div class="flex items-center text-sm text-gray-600">
+                <i class="fas fa-check-circle text-warning mr-2"></i>
+                <span>Committed changes survive system failures</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gray-50 p-6 rounded-lg mb-8">
+            <h3 class="text-xl font-semibold mb-4 text-dark">
+              Importance of ACID Properties
+            </h3>
+            <p class="text-gray-700 mb-4">
+              ACID properties are fundamental to reliable transaction processing
+              in databases. They ensure that even in the event of system
+              failures, concurrent access, or errors, the database remains in a
+              consistent state and transactions complete successfully.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-white p-4 rounded-lg">
+                <h4 class="font-bold text-primary mb-2">Without ACID</h4>
+                <ul class="list-disc pl-5 text-gray-700">
+                  <li>Partial updates causing data corruption</li>
+                  <li>Inconsistent views of data during transactions</li>
+                  <li>Lost updates from concurrent access</li>
+                  <li>Data loss during system failures</li>
+                </ul>
+              </div>
+              <div class="bg-white p-4 rounded-lg">
+                <h4 class="font-bold text-success mb-2">With ACID</h4>
+                <ul class="list-disc pl-5 text-gray-700">
+                  <li>Guaranteed data integrity and consistency</li>
+                  <li>Reliable transaction processing</li>
+                  <li>Safe concurrent access by multiple users</li>
+                  <li>Recovery from system failures</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="concurrency">
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+          <h2 class="text-2xl font-bold mb-6 text-dark">Concurrency Control</h2>
+          <p class="text-gray-700 mb-6">
+            Concurrency control coordinates the simultaneous execution of
+            transactions in a multiprocessing database. Its objective is to
+            ensure serializability of transactions in a multiuser environment,
+            preventing data integrity issues.
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-red-50 p-5 rounded-lg">
+              <h3 class="text-xl font-bold text-danger mb-3">Lost Updates</h3>
+              <p class="text-gray-700 mb-3">
+                Occurs when two transactions access the same data and the first
+                update is overwritten by the second.
+              </p>
+              <div class="text-sm text-gray-600">
+                <div class="font-bold mb-1">Example:</div>
+                <p>
+                  T1 reads balance ($500), T2 reads same balance ($500), T1
+                  subtracts $100 ($400), T2 adds $200 ($700), T1's update is
+                  lost.
+                </p>
+              </div>
+            </div>
+
+            <div class="bg-orange-50 p-5 rounded-lg">
+              <h3 class="text-xl font-bold text-warning mb-3">
+                Uncommitted Data
+              </h3>
+              <p class="text-gray-700 mb-3">
+                Occurs when a transaction accesses data that hasn't been
+                committed by another transaction.
+              </p>
+              <div class="text-sm text-gray-600">
+                <div class="font-bold mb-1">Example:</div>
+                <p>
+                  T1 updates data but doesn't commit, T2 reads uncommitted data,
+                  T1 rolls back - T2 has invalid data.
+                </p>
+              </div>
+            </div>
+
+            <div class="bg-yellow-50 p-5 rounded-lg">
+              <h3 class="text-xl font-bold text-warning mb-3">
+                Inconsistent Retrievals
+              </h3>
+              <p class="text-gray-700 mb-3">
+                Occurs when a transaction calculates aggregate functions while
+                data is being updated by other transactions.
+              </p>
+              <div class="text-sm text-gray-600">
+                <div class="font-bold mb-1">Example:</div>
+                <p>
+                  T1 is summing account balances while T2 transfers money
+                  between accounts - sum includes partial updates.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="diagram-container mb-8">
+            <h3 class="font-bold text-lg mb-4 text-center">
+              The Scheduler in Concurrency Control
+            </h3>
+            <div class="flex flex-col items-center">
+              <div class="w-full max-w-3xl">
+                <div class="flex justify-between mb-6">
+                  <div class="text-center">
+                    <div
+                      class="bg-primary text-white rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-2"
+                    >
+                      <i class="fas fa-user"></i>
+                    </div>
+                    <div class="font-bold">User 1</div>
+                    <div class="text-sm">Transaction T1</div>
+                  </div>
+
+                  <div class="text-center">
+                    <div
+                      class="bg-primary text-white rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-2"
+                    >
+                      <i class="fas fa-user"></i>
+                    </div>
+                    <div class="font-bold">User 2</div>
+                    <div class="text-sm">Transaction T2</div>
+                  </div>
+
+                  <div class="text-center">
+                    <div
+                      class="bg-primary text-white rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-2"
+                    >
+                      <i class="fas fa-user"></i>
+                    </div>
+                    <div class="font-bold">User 3</div>
+                    <div class="text-sm">Transaction T3</div>
+                  </div>
+                </div>
+
+                <div class="bg-gray-200 rounded-lg p-4 mb-6 text-center">
+                  <div class="font-bold text-lg mb-2">Scheduler</div>
+                  <p class="text-sm">
+                    Establishes order of operations for concurrent transactions
+                  </p>
+                  <p class="text-sm">
+                    Uses locking or timestamping to ensure serializability
+                  </p>
+                </div>
+
+                <div class="bg-gray-800 text-white rounded-lg p-4 text-center">
+                  <div class="font-bold">Database</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-blue-50 p-6 rounded-lg">
+            <h3 class="text-xl font-semibold mb-4 text-dark">
+              Solutions to Concurrency Problems
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="bg-white p-4 rounded-lg">
+                <h4 class="font-bold text-primary mb-2">Locking Methods</h4>
+                <p class="text-gray-700">
+                  Use locks to control access to data items
+                </p>
+                <ul class="list-disc pl-5 mt-2 text-sm text-gray-600">
+                  <li>Binary locks</li>
+                  <li>Shared/Exclusive locks</li>
+                  <li>Two-phase locking protocol</li>
+                </ul>
+              </div>
+              <div class="bg-white p-4 rounded-lg">
+                <h4 class="font-bold text-primary mb-2">Timestamping</h4>
+                <p class="text-gray-700">
+                  Assign global unique timestamp to each transaction
+                </p>
+                <ul class="list-disc pl-5 mt-2 text-sm text-gray-600">
+                  <li>Transactions processed in timestamp order</li>
+                  <li>Wait/die and wound/wait schemes</li>
+                </ul>
+              </div>
+              <div class="bg-white p-4 rounded-lg">
+                <h4 class="font-bold text-primary mb-2">Optimistic Methods</h4>
+                <p class="text-gray-700">
+                  Assume few conflicts, validate before commit
+                </p>
+                <ul class="list-disc pl-5 mt-2 text-sm text-gray-600">
+                  <li>Read phase</li>
+                  <li>Validation phase</li>
+                  <li>Write phase</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="locking">
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+          <h2 class="text-2xl font-bold mb-6 text-dark">
+            Locking Methods in Concurrency Control
+          </h2>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div>
+              <h3 class="text-xl font-semibold mb-4 text-dark">
+                Lock Granularity
+              </h3>
+              <div class="space-y-4">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                  <h4 class="font-bold text-primary">Database-Level Lock</h4>
+                  <p class="text-sm text-gray-700">
+                    Entire database locked - suitable for batch processing
+                  </p>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-lg">
+                  <h4 class="font-bold text-primary">Table-Level Lock</h4>
+                  <p class="text-sm text-gray-700">
+                    Entire table locked - can cause bottlenecks
+                  </p>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-lg">
+                  <h4 class="font-bold text-primary">Page-Level Lock</h4>
+                  <p class="text-sm text-gray-700">
+                    Disk page locked - most common in multi-user DBMS
+                  </p>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-lg">
+                  <h4 class="font-bold text-primary">Row-Level Lock</h4>
+                  <p class="text-sm text-gray-700">
+                    Single row locked - improves concurrency
+                  </p>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-lg">
+                  <h4 class="font-bold text-primary">Field-Level Lock</h4>
+                  <p class="text-sm text-gray-700">
+                    Single field locked - maximum flexibility
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 class="text-xl font-semibold mb-4 text-dark">Lock Types</h3>
+              <div class="space-y-4">
+                <div class="bg-purple-50 p-4 rounded-lg">
+                  <h4 class="font-bold text-purple-700">Binary Locks</h4>
+                  <p class="text-sm text-gray-700">
+                    Two states: locked or unlocked. Simple but restrictive.
+                  </p>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg">
+                  <h4 class="font-bold text-purple-700">
+                    Shared Locks (S-locks)
+                  </h4>
+                  <p class="text-sm text-gray-700">
+                    Concurrent transactions can read but not update the data
+                    item.
+                  </p>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg">
+                  <h4 class="font-bold text-purple-700">
+                    Exclusive Locks (X-locks)
+                  </h4>
+                  <p class="text-sm text-gray-700">
+                    Reserves exclusive access for writing. No other locks
+                    allowed.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-8">
+            <h3 class="text-xl font-semibold mb-4 text-dark">
+              Two-Phase Locking Protocol
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div
+                class="bg-gradient-to-r from-blue-100 to-indigo-100 p-6 rounded-lg"
+              >
+                <h4 class="font-bold text-primary text-lg mb-3">
+                  Growing Phase
+                </h4>
+                <p class="text-gray-700 mb-3">
+                  Transaction acquires all required locks without unlocking any
+                  data.
+                </p>
+                <ul class="list-disc pl-5 text-gray-700">
+                  <li>Obtain S-lock for read operations</li>
+                  <li>Obtain X-lock for write operations</li>
+                  <li>No locks can be released in this phase</li>
+                </ul>
+              </div>
+
+              <div
+                class="bg-gradient-to-r from-green-100 to-teal-100 p-6 rounded-lg"
+              >
+                <h4 class="font-bold text-success text-lg mb-3">
+                  Shrinking Phase
+                </h4>
+                <p class="text-gray-700 mb-3">
+                  Transaction releases all locks and cannot obtain any new
+                  locks.
+                </p>
+                <ul class="list-disc pl-5 text-gray-700">
+                  <li>Release locks after operations complete</li>
+                  <li>No new locks can be acquired</li>
+                  <li>Ensures serializability of transactions</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-yellow-50 p-6 rounded-lg">
+            <h3 class="text-xl font-semibold mb-4 text-dark">Deadlocks</h3>
+            <p class="text-gray-700 mb-4">
+              A deadlock occurs when two or more transactions are waiting for
+              each other to release locks, creating a cycle of dependencies.
+              Also known as "deadly embrace".
+            </p>
+
+            <div class="diagram-container mb-6">
+              <div class="flex justify-center">
+                <div class="relative" style="width: 300px; height: 200px">
+                  <div
+                    class="transaction-node bg-red-100 absolute"
+                    style="top: 20px; left: 20px"
+                  >
+                    T1 holds lock on X
+                  </div>
+
+                  <div
+                    class="transaction-node bg-blue-100 absolute"
+                    style="top: 20px; right: 20px"
+                  >
+                    T2 holds lock on Y
+                  </div>
+
+                  <div
+                    class="transaction-arrow"
+                    style="
+                      top: 45px;
+                      left: 140px;
+                      width: 120px;
+                      transform: rotate(45deg);
+                    "
+                  ></div>
+                  <div
+                    class="transaction-arrow"
+                    style="
+                      top: 45px;
+                      left: 40px;
+                      width: 120px;
+                      transform: rotate(-45deg);
+                    "
+                  ></div>
+
+                  <div class="lock-icon" style="top: 60px; left: 160px">
+                    <i class="fas fa-lock text-danger"></i>
+                  </div>
+
+                  <div class="lock-icon" style="top: 60px; left: 60px">
+                    <i class="fas fa-lock text-primary"></i>
+                  </div>
+
+                  <div
+                    class="transaction-node bg-red-100 absolute"
+                    style="bottom: 20px; left: 20px"
+                  >
+                    T1 wants lock on Y
+                  </div>
+
+                  <div
+                    class="transaction-node bg-blue-100 absolute"
+                    style="bottom: 20px; right: 20px"
+                  >
+                    T2 wants lock on X
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="bg-white p-4 rounded-lg">
+                <h4 class="font-bold text-primary mb-2">Deadlock Prevention</h4>
+                <p class="text-sm text-gray-700">
+                  Require transactions to lock all data at once or use ordering
+                </p>
+              </div>
+              <div class="bg-white p-4 rounded-lg">
+                <h4 class="font-bold text-primary mb-2">Deadlock Detection</h4>
+                <p class="text-sm text-gray-700">
+                  Use wait-for graphs to identify cycles
+                </p>
+              </div>
+              <div class="bg-white p-4 rounded-lg">
+                <h4 class="font-bold text-primary mb-2">Deadlock Resolution</h4>
+                <p class="text-sm text-gray-700">
+                  Rollback one transaction to break the cycle
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="recovery">
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+          <h2 class="text-2xl font-bold mb-6 text-dark">
+            Database Recovery Techniques
+          </h2>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-blue-50 p-5 rounded-lg">
+              <h3 class="text-xl font-bold text-primary mb-3">
+                Write-Through Technique
+              </h3>
+              <p class="text-gray-700 mb-3">
+                Database is immediately updated during transaction execution,
+                even before commit.
+              </p>
+              <ul class="list-disc pl-5 text-gray-700">
+                <li>If transaction aborts, ROLLBACK restores database</li>
+                <li>Uses "before" values in log for rollback</li>
+                <li>Uses "after" values for redo after checkpoint</li>
+              </ul>
+            </div>
+
+            <div class="bg-green-50 p-5 rounded-lg">
+              <h3 class="text-xl font-bold text-success mb-3">
+                Deferred Write Technique
+              </h3>
+              <p class="text-gray-700 mb-3">
+                Transaction operations update only the transaction log, not the
+                physical database.
+              </p>
+              <ul class="list-disc pl-5 text-gray-700">
+                <li>Database updated only after transaction commits</li>
+                <li>No rollback needed for aborted transactions</li>
+                <li>More efficient for transactions that abort frequently</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="mb-8">
+            <h3 class="text-xl font-semibold mb-4 text-dark">
+              Backup Strategies
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="bg-white p-4 rounded-lg shadow text-center">
+                <div class="text-4xl text-primary mb-3">
+                  <i class="fas fa-database"></i>
+                </div>
+                <h4 class="font-bold text-primary mb-2">Full Backup</h4>
+                <p class="text-sm text-gray-700">
+                  Saves entire database plus transaction log
+                </p>
+              </div>
+              <div class="bg-white p-4 rounded-lg shadow text-center">
+                <div class="text-4xl text-primary mb-3">
+                  <i class="fas fa-file-export"></i>
+                </div>
+                <h4 class="font-bold text-primary mb-2">Differential Backup</h4>
+                <p class="text-sm text-gray-700">
+                  Saves only pages changed since last full backup
+                </p>
+              </div>
+              <div class="bg-white p-4 rounded-lg shadow text-center">
+                <div class="text-4xl text-primary mb-3">
+                  <i class="fas fa-file-alt"></i>
+                </div>
+                <h4 class="font-bold text-primary mb-2">
+                  Transaction Log Backup
+                </h4>
+                <p class="text-sm text-gray-700">
+                  Saves only the transaction log
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-gray-50 p-6 rounded-lg">
+            <h3 class="text-xl font-semibold mb-4 text-dark">
+              ARIES Recovery Algorithm
+            </h3>
+            <p class="text-gray-700 mb-4">
+              ARIES (Algorithms for Recovery and Isolation Exploiting Semantics)
+              is a popular recovery algorithm that uses a combination of
+              write-ahead logging, repeating history during redo, and logging
+              changes during undo.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="bg-white p-5 rounded-lg">
+                <h4 class="font-bold text-primary text-lg mb-3">
+                  1. Analysis Phase
+                </h4>
+                <p class="text-gray-700">
+                  Scans log forward from last checkpoint to identify:
+                </p>
+                <ul class="list-disc pl-5 mt-2 text-sm text-gray-600">
+                  <li>Active transactions at time of crash</li>
+                  <li>Dirty pages in buffer pool</li>
+                </ul>
+              </div>
+
+              <div class="bg-white p-5 rounded-lg">
+                <h4 class="font-bold text-success text-lg mb-3">
+                  2. Redo Phase
+                </h4>
+                <p class="text-gray-700">Redoes all updates to dirty pages:</p>
+                <ul class="list-disc pl-5 mt-2 text-sm text-gray-600">
+                  <li>Repeats history to restore database state</li>
+                  <li>Ensures all logged updates are written to disk</li>
+                </ul>
+              </div>
+
+              <div class="bg-white p-5 rounded-lg">
+                <h4 class="font-bold text-warning text-lg mb-3">
+                  3. Undo Phase
+                </h4>
+                <p class="text-gray-700">
+                  Undoes writes of transactions active at crash:
+                </p>
+                <ul class="list-disc pl-5 mt-2 text-sm text-gray-600">
+                  <li>Uses before values from log records</li>
+                  <li>Works backwards in the log</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="flashcards">
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-dark">
+              Transaction Management Flashcards
+            </h2>
+            <div class="flex items-center">
+              <div class="mr-4">
+                <span class="font-medium">Progress:</span>
+                <span id="progress-count">1</span>/<span id="total-flashcards"
+                  >12</span
+                >
+              </div>
+              <button
+                id="reset-flashcards"
+                class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg"
+              >
+                <i class="fas fa-redo mr-2"></i>Reset
+              </button>
+            </div>
+          </div>
+
+          <div class="progress-bar bg-gray-200 mb-6">
+            <div
+              id="progress-fill"
+              class="progress-fill bg-primary"
+              style="width: 8%"
+            ></div>
+          </div>
+
+          <div class="flex justify-center mb-6">
+            <div
+              class="flashcard w-full max-w-2xl cursor-pointer"
+              id="flashcard"
+            >
+              <div class="flashcard-inner">
+                <div
+                  class="flashcard-front bg-gradient-to-r from-blue-50 to-indigo-50 flex flex-col justify-center items-center"
+                >
+                  <div class="text-5xl text-primary mb-4">
+                    <i class="fas fa-exchange-alt"></i>
+                  </div>
+                  <h3
+                    class="text-2xl font-bold text-center mb-4 text-dark"
+                    id="term"
+                  >
+                    Transaction
+                  </h3>
+                  <p class="text-gray-500">Click to flip</p>
+                </div>
+                <div
+                  class="flashcard-back bg-gradient-to-r from-indigo-50 to-purple-50"
+                >
+                  <div class="text-lg text-gray-700" id="definition">
+                    A logical unit of work that must be either entirely
+                    completed or aborted. Changes database from one consistent
+                    state to another where all data integrity constraints are
+                    satisfied.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-center space-x-4">
+            <button
+              id="prev-card"
+              class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg"
+            >
+              <i class="fas fa-arrow-left mr-2"></i>Previous
+            </button>
+            <button
+              id="next-card"
+              class="bg-primary hover:bg-secondary text-white px-6 py-3 rounded-lg"
+            >
+              Next<i class="fas fa-arrow-right ml-2"></i>
+            </button>
+          </div>
         </div>
 
- 
-        <div class="tab-content" id="recovery">
-            <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-                <h2 class="text-2xl font-bold mb-6 text-dark">Database Recovery Techniques</h2>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    <div class="bg-blue-50 p-5 rounded-lg">
-                        <h3 class="text-xl font-bold text-primary mb-3">Write-Through Technique</h3>
-                        <p class="text-gray-700 mb-3">Database is immediately updated during transaction execution, even before commit.</p>
-                        <ul class="list-disc pl-5 text-gray-700">
-                            <li>If transaction aborts, ROLLBACK restores database</li>
-                            <li>Uses "before" values in log for rollback</li>
-                            <li>Uses "after" values for redo after checkpoint</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="bg-green-50 p-5 rounded-lg">
-                        <h3 class="text-xl font-bold text-success mb-3">Deferred Write Technique</h3>
-                        <p class="text-gray-700 mb-3">Transaction operations update only the transaction log, not the physical database.</p>
-                        <ul class="list-disc pl-5 text-gray-700">
-                            <li>Database updated only after transaction commits</li>
-                            <li>No rollback needed for aborted transactions</li>
-                            <li>More efficient for transactions that abort frequently</li>
-                        </ul>
-                    </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-white rounded-xl shadow-md p-6">
+            <h3 class="text-xl font-bold mb-4 text-dark">ACID Properties</h3>
+            <ul class="space-y-3">
+              <li class="flex items-start p-3 bg-blue-50 rounded-lg">
+                <i class="fas fa-atom text-primary mt-1 mr-3"></i>
+                <div>
+                  <h4 class="font-bold">Atomicity</h4>
+                  <p class="text-sm text-gray-600">
+                    All operations complete or none do
+                  </p>
                 </div>
-                
-                <div class="mb-8">
-                    <h3 class="text-xl font-semibold mb-4 text-dark">Backup Strategies</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="bg-white p-4 rounded-lg shadow text-center">
-                            <div class="text-4xl text-primary mb-3">
-                                <i class="fas fa-database"></i>
-                            </div>
-                            <h4 class="font-bold text-primary mb-2">Full Backup</h4>
-                            <p class="text-sm text-gray-700">Saves entire database plus transaction log</p>
-                        </div>
-                        <div class="bg-white p-4 rounded-lg shadow text-center">
-                            <div class="text-4xl text-primary mb-3">
-                                <i class="fas fa-file-export"></i>
-                            </div>
-                            <h4 class="font-bold text-primary mb-2">Differential Backup</h4>
-                            <p class="text-sm text-gray-700">Saves only pages changed since last full backup</p>
-                        </div>
-                        <div class="bg-white p-4 rounded-lg shadow text-center">
-                            <div class="text-4xl text-primary mb-3">
-                                <i class="fas fa-file-alt"></i>
-                            </div>
-                            <h4 class="font-bold text-primary mb-2">Transaction Log Backup</h4>
-                            <p class="text-sm text-gray-700">Saves only the transaction log</p>
-                        </div>
-                    </div>
+              </li>
+              <li class="flex items-start p-3 bg-green-50 rounded-lg">
+                <i class="fas fa-check-circle text-success mt-1 mr-3"></i>
+                <div>
+                  <h4 class="font-bold">Consistency</h4>
+                  <p class="text-sm text-gray-600">
+                    Database remains consistent
+                  </p>
                 </div>
-                
-                <div class="bg-gray-50 p-6 rounded-lg">
-                    <h3 class="text-xl font-semibold mb-4 text-dark">ARIES Recovery Algorithm</h3>
-                    <p class="text-gray-700 mb-4">
-                        ARIES (Algorithms for Recovery and Isolation Exploiting Semantics) is a popular recovery algorithm that uses 
-                        a combination of write-ahead logging, repeating history during redo, and logging changes during undo.
-                    </p>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="bg-white p-5 rounded-lg">
-                            <h4 class="font-bold text-primary text-lg mb-3">1. Analysis Phase</h4>
-                            <p class="text-gray-700">Scans log forward from last checkpoint to identify:</p>
-                            <ul class="list-disc pl-5 mt-2 text-sm text-gray-600">
-                                <li>Active transactions at time of crash</li>
-                                <li>Dirty pages in buffer pool</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="bg-white p-5 rounded-lg">
-                            <h4 class="font-bold text-success text-lg mb-3">2. Redo Phase</h4>
-                            <p class="text-gray-700">Redoes all updates to dirty pages:</p>
-                            <ul class="list-disc pl-5 mt-2 text-sm text-gray-600">
-                                <li>Repeats history to restore database state</li>
-                                <li>Ensures all logged updates are written to disk</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="bg-white p-5 rounded-lg">
-                            <h4 class="font-bold text-warning text-lg mb-3">3. Undo Phase</h4>
-                            <p class="text-gray-700">Undoes writes of transactions active at crash:</p>
-                            <ul class="list-disc pl-5 mt-2 text-sm text-gray-600">
-                                <li>Uses before values from log records</li>
-                                <li>Works backwards in the log</li>
-                            </ul>
-                        </div>
-                    </div>
+              </li>
+              <li class="flex items-start p-3 bg-purple-50 rounded-lg">
+                <i class="fas fa-user-lock text-purple-600 mt-1 mr-3"></i>
+                <div>
+                  <h4 class="font-bold">Isolation</h4>
+                  <p class="text-sm text-gray-600">
+                    Transactions execute independently
+                  </p>
                 </div>
-            </div>
-        </div>
+              </li>
+              <li class="flex items-start p-3 bg-yellow-50 rounded-lg">
+                <i class="fas fa-shield-alt text-warning mt-1 mr-3"></i>
+                <div>
+                  <h4 class="font-bold">Durability</h4>
+                  <p class="text-sm text-gray-600">
+                    Committed changes survive failures
+                  </p>
+                </div>
+              </li>
+            </ul>
+          </div>
 
-     
-        <div class="tab-content" id="flashcards">
-            <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-dark">Transaction Management Flashcards</h2>
-                    <div class="flex items-center">
-                        <div class="mr-4">
-                            <span class="font-medium">Progress:</span>
-                            <span id="progress-count">1</span>/<span id="total-flashcards">12</span>
-                        </div>
-                        <button id="reset-flashcards" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg">
-                            <i class="fas fa-redo mr-2"></i>Reset
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="progress-bar bg-gray-200 mb-6">
-                    <div id="progress-fill" class="progress-fill bg-primary" style="width: 8%;"></div>
-                </div>
-                
-                <div class="flex justify-center mb-6">
-                    <div class="flashcard w-full max-w-2xl cursor-pointer" id="flashcard">
-                        <div class="flashcard-inner">
-                            <div class="flashcard-front bg-gradient-to-r from-blue-50 to-indigo-50 flex flex-col justify-center items-center">
-                                <div class="text-5xl text-primary mb-4">
-                                    <i class="fas fa-exchange-alt"></i>
-                                </div>
-                                <h3 class="text-2xl font-bold text-center mb-4 text-dark" id="term">Transaction</h3>
-                                <p class="text-gray-500">Click to flip</p>
-                            </div>
-                            <div class="flashcard-back bg-gradient-to-r from-indigo-50 to-purple-50">
-                                <div class="text-lg text-gray-700" id="definition">
-                                    A logical unit of work that must be either entirely completed or aborted. 
-                                    Changes database from one consistent state to another where all data integrity constraints are satisfied.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="flex justify-center space-x-4">
-                    <button id="prev-card" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg">
-                        <i class="fas fa-arrow-left mr-2"></i>Previous
-                    </button>
-                    <button id="next-card" class="bg-primary hover:bg-secondary text-white px-6 py-3 rounded-lg">
-                        Next<i class="fas fa-arrow-right ml-2"></i>
-                    </button>
-                </div>
+          <div class="bg-white rounded-xl shadow-md p-6">
+            <h3 class="text-xl font-bold mb-4 text-dark">
+              Concurrency Problems
+            </h3>
+            <div class="space-y-4">
+              <div class="p-3 bg-red-50 rounded-lg">
+                <h4 class="font-bold text-danger">Lost Updates</h4>
+                <p class="text-sm text-gray-600 mt-1">
+                  First update overwritten by second
+                </p>
+              </div>
+              <div class="p-3 bg-orange-50 rounded-lg">
+                <h4 class="font-bold text-warning">Uncommitted Data</h4>
+                <p class="text-sm text-gray-600 mt-1">
+                  Accessing data before commit
+                </p>
+              </div>
+              <div class="p-3 bg-yellow-50 rounded-lg">
+                <h4 class="font-bold text-warning">Inconsistent Retrievals</h4>
+                <p class="text-sm text-gray-600 mt-1">
+                  Aggregates with partial updates
+                </p>
+              </div>
             </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white rounded-xl shadow-md p-6">
-                    <h3 class="text-xl font-bold mb-4 text-dark">ACID Properties</h3>
-                    <ul class="space-y-3">
-                        <li class="flex items-start p-3 bg-blue-50 rounded-lg">
-                            <i class="fas fa-atom text-primary mt-1 mr-3"></i>
-                            <div>
-                                <h4 class="font-bold">Atomicity</h4>
-                                <p class="text-sm text-gray-600">All operations complete or none do</p>
-                            </div>
-                        </li>
-                        <li class="flex items-start p-3 bg-green-50 rounded-lg">
-                            <i class="fas fa-check-circle text-success mt-1 mr-3"></i>
-                            <div>
-                                <h4 class="font-bold">Consistency</h4>
-                                <p class="text-sm text-gray-600">Database remains consistent</p>
-                            </div>
-                        </li>
-                        <li class="flex items-start p-3 bg-purple-50 rounded-lg">
-                            <i class="fas fa-user-lock text-purple-600 mt-1 mr-3"></i>
-                            <div>
-                                <h4 class="font-bold">Isolation</h4>
-                                <p class="text-sm text-gray-600">Transactions execute independently</p>
-                            </div>
-                        </li>
-                        <li class="flex items-start p-3 bg-yellow-50 rounded-lg">
-                            <i class="fas fa-shield-alt text-warning mt-1 mr-3"></i>
-                            <div>
-                                <h4 class="font-bold">Durability</h4>
-                                <p class="text-sm text-gray-600">Committed changes survive failures</p>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-                
-                <div class="bg-white rounded-xl shadow-md p-6">
-                    <h3 class="text-xl font-bold mb-4 text-dark">Concurrency Problems</h3>
-                    <div class="space-y-4">
-                        <div class="p-3 bg-red-50 rounded-lg">
-                            <h4 class="font-bold text-danger">Lost Updates</h4>
-                            <p class="text-sm text-gray-600 mt-1">First update overwritten by second</p>
-                        </div>
-                        <div class="p-3 bg-orange-50 rounded-lg">
-                            <h4 class="font-bold text-warning">Uncommitted Data</h4>
-                            <p class="text-sm text-gray-600 mt-1">Accessing data before commit</p>
-                        </div>
-                        <div class="p-3 bg-yellow-50 rounded-lg">
-                            <h4 class="font-bold text-warning">Inconsistent Retrievals</h4>
-                            <p class="text-sm text-gray-600 mt-1">Aggregates with partial updates</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-white rounded-xl shadow-md p-6">
-                    <h3 class="text-xl font-bold mb-4 text-dark">Recovery Concepts</h3>
-                    <div class="space-y-3">
-                        <div class="p-3 bg-blue-50 rounded-lg">
-                            <h4 class="font-bold text-primary">Transaction Log</h4>
-                            <p class="text-sm text-gray-600">Tracks all database changes</p>
-                        </div>
-                        <div class="p-3 bg-green-50 rounded-lg">
-                            <h4 class="font-bold text-success">Checkpoint</h4>
-                            <p class="text-sm text-gray-600">Marks last consistent state</p>
-                        </div>
-                        <div class="p-3 bg-purple-50 rounded-lg">
-                            <h4 class="font-bold text-purple-700">Write-Through</h4>
-                            <p class="text-sm text-gray-600">Immediate database update</p>
-                        </div>
-                        <div class="p-3 bg-teal-50 rounded-lg">
-                            <h4 class="font-bold text-teal-700">Deferred Write</h4>
-                            <p class="text-sm text-gray-600">Log updated first, DB later</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+          </div>
 
-      
-        <div class="tab-content" id="quiz">
-            <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-                <h2 class="text-2xl font-bold mb-6 text-dark">Transaction Management Quiz</h2>
-                
-                <div id="quiz-container">
-                    <div class="quiz-question mb-8">
-                        <h3 class="text-xl font-semibold mb-4">1. Which of the following is NOT one of the ACID properties?</h3>
-                        <div class="space-y-3">
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q1" class="mr-3" value="a">
-                                <label>Atomicity</label>
-                            </div>
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q1" class="mr-3" value="b">
-                                <label>Consistency</label>
-                            </div>
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q1" class="mr-3" value="c">
-                                <label>Durability</label>
-                            </div>
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q1" class="mr-3" value="d">
-                                <label>Concurrency</label>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="quiz-question mb-8">
-                        <h3 class="text-xl font-semibold mb-4">2. What is the main purpose of a transaction log?</h3>
-                        <div class="space-y-3">
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q2" class="mr-3" value="a">
-                                <label>To improve database performance</label>
-                            </div>
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q2" class="mr-3" value="b">
-                                <label>To enable database recovery after failures</label>
-                            </div>
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q2" class="mr-3" value="c">
-                                <label>To manage user permissions</label>
-                            </div>
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q2" class="mr-3" value="d">
-                                <label>To optimize query execution</label>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="quiz-question mb-8">
-                        <h3 class="text-xl font-semibold mb-4">3. Which concurrency problem occurs when a transaction reads uncommitted data that is later rolled back?</h3>
-                        <div class="space-y-3">
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q3" class="mr-3" value="a">
-                                <label>Lost update</label>
-                            </div>
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q3" class="mr-3" value="b">
-                                <label>Inconsistent retrieval</label>
-                            </div>
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q3" class="mr-3" value="c">
-                                <label>Uncommitted data</label>
-                            </div>
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q3" class="mr-3" value="d">
-                                <label>Deadlock</label>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="quiz-question mb-8">
-                        <h3 class="text-xl font-semibold mb-4">4. In the two-phase locking protocol, which phase involves releasing locks?</h3>
-                        <div class="space-y-3">
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q4" class="mr-3" value="a">
-                                <label>Growing phase</label>
-                            </div>
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q4" class="mr-3" value="b">
-                                <label>Shrinking phase</label>
-                            </div>
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q4" class="mr-3" value="c">
-                                <label>Commit phase</label>
-                            </div>
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q4" class="mr-3" value="d">
-                                <label>Release phase</label>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="quiz-question mb-8">
-                        <h3 class="text-xl font-semibold mb-4">5. Which phase of the ARIES recovery algorithm involves undoing writes of transactions that were active at the time of crash?</h3>
-                        <div class="space-y-3">
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q5" class="mr-3" value="a">
-                                <label>Analysis phase</label>
-                            </div>
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q5" class="mr-3" value="b">
-                                <label>Redo phase</label>
-                            </div>
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q5" class="mr-3" value="c">
-                                <label>Undo phase</label>
-                            </div>
-                            <div class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer">
-                                <input type="radio" name="q5" class="mr-3" value="d">
-                                <label>Recovery phase</label>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="flex justify-center">
-                        <button id="submit-quiz" class="bg-primary hover:bg-secondary text-white px-8 py-3 rounded-lg text-lg font-medium">
-                            Submit Quiz
-                        </button>
-                    </div>
-                </div>
-                
-                <div id="quiz-results" class="hidden mt-8">
-                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl mb-6">
-                        <h3 class="text-2xl font-bold text-center mb-2">Quiz Results</h3>
-                        <div class="text-center text-4xl font-bold text-primary mb-4" id="score-display">4/5</div>
-                        <p class="text-center text-gray-600">You've completed the Transaction Management Quiz!</p>
-                    </div>
-                    
-                    <div class="space-y-6" id="results-details">
-                      
-                    </div>
-                    
-                    <div class="flex justify-center mt-8">
-                        <button id="retry-quiz" class="bg-primary hover:bg-secondary text-white px-8 py-3 rounded-lg text-lg font-medium">
-                            <i class="fas fa-redo mr-2"></i>Retry Quiz
-                        </button>
-                    </div>
-                </div>
+          <div class="bg-white rounded-xl shadow-md p-6">
+            <h3 class="text-xl font-bold mb-4 text-dark">Recovery Concepts</h3>
+            <div class="space-y-3">
+              <div class="p-3 bg-blue-50 rounded-lg">
+                <h4 class="font-bold text-primary">Transaction Log</h4>
+                <p class="text-sm text-gray-600">Tracks all database changes</p>
+              </div>
+              <div class="p-3 bg-green-50 rounded-lg">
+                <h4 class="font-bold text-success">Checkpoint</h4>
+                <p class="text-sm text-gray-600">Marks last consistent state</p>
+              </div>
+              <div class="p-3 bg-purple-50 rounded-lg">
+                <h4 class="font-bold text-purple-700">Write-Through</h4>
+                <p class="text-sm text-gray-600">Immediate database update</p>
+              </div>
+              <div class="p-3 bg-teal-50 rounded-lg">
+                <h4 class="font-bold text-teal-700">Deferred Write</h4>
+                <p class="text-sm text-gray-600">Log updated first, DB later</p>
+              </div>
             </div>
+          </div>
         </div>
+      </div>
+
+      <div class="tab-content" id="quiz">
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+          <h2 class="text-2xl font-bold mb-6 text-dark">
+            Transaction Management Quiz
+          </h2>
+
+          <div id="quiz-container">
+            <div class="quiz-question mb-8">
+              <h3 class="text-xl font-semibold mb-4">
+                1. Which of the following is NOT one of the ACID properties?
+              </h3>
+              <div class="space-y-3">
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q1" class="mr-3" value="a" />
+                  <label>Atomicity</label>
+                </div>
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q1" class="mr-3" value="b" />
+                  <label>Consistency</label>
+                </div>
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q1" class="mr-3" value="c" />
+                  <label>Durability</label>
+                </div>
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q1" class="mr-3" value="d" />
+                  <label>Concurrency</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="quiz-question mb-8">
+              <h3 class="text-xl font-semibold mb-4">
+                2. What is the main purpose of a transaction log?
+              </h3>
+              <div class="space-y-3">
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q2" class="mr-3" value="a" />
+                  <label>To improve database performance</label>
+                </div>
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q2" class="mr-3" value="b" />
+                  <label>To enable database recovery after failures</label>
+                </div>
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q2" class="mr-3" value="c" />
+                  <label>To manage user permissions</label>
+                </div>
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q2" class="mr-3" value="d" />
+                  <label>To optimize query execution</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="quiz-question mb-8">
+              <h3 class="text-xl font-semibold mb-4">
+                3. Which concurrency problem occurs when a transaction reads
+                uncommitted data that is later rolled back?
+              </h3>
+              <div class="space-y-3">
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q3" class="mr-3" value="a" />
+                  <label>Lost update</label>
+                </div>
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q3" class="mr-3" value="b" />
+                  <label>Inconsistent retrieval</label>
+                </div>
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q3" class="mr-3" value="c" />
+                  <label>Uncommitted data</label>
+                </div>
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q3" class="mr-3" value="d" />
+                  <label>Deadlock</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="quiz-question mb-8">
+              <h3 class="text-xl font-semibold mb-4">
+                4. In the two-phase locking protocol, which phase involves
+                releasing locks?
+              </h3>
+              <div class="space-y-3">
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q4" class="mr-3" value="a" />
+                  <label>Growing phase</label>
+                </div>
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q4" class="mr-3" value="b" />
+                  <label>Shrinking phase</label>
+                </div>
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q4" class="mr-3" value="c" />
+                  <label>Commit phase</label>
+                </div>
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q4" class="mr-3" value="d" />
+                  <label>Release phase</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="quiz-question mb-8">
+              <h3 class="text-xl font-semibold mb-4">
+                5. Which phase of the ARIES recovery algorithm involves undoing
+                writes of transactions that were active at the time of crash?
+              </h3>
+              <div class="space-y-3">
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q5" class="mr-3" value="a" />
+                  <label>Analysis phase</label>
+                </div>
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q5" class="mr-3" value="b" />
+                  <label>Redo phase</label>
+                </div>
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q5" class="mr-3" value="c" />
+                  <label>Undo phase</label>
+                </div>
+                <div
+                  class="quiz-option p-4 border border-gray-200 rounded-lg cursor-pointer"
+                >
+                  <input type="radio" name="q5" class="mr-3" value="d" />
+                  <label>Recovery phase</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-center">
+              <button
+                id="submit-quiz"
+                class="bg-primary hover:bg-secondary text-white px-8 py-3 rounded-lg text-lg font-medium"
+              >
+                Submit Quiz
+              </button>
+            </div>
+          </div>
+
+          <div id="quiz-results" class="hidden mt-8">
+            <div
+              class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl mb-6"
+            >
+              <h3 class="text-2xl font-bold text-center mb-2">Quiz Results</h3>
+              <div
+                class="text-center text-4xl font-bold text-primary mb-4"
+                id="score-display"
+              >
+                4/5
+              </div>
+              <p class="text-center text-gray-600">
+                You've completed the Transaction Management Quiz!
+              </p>
+            </div>
+
+            <div class="space-y-6" id="results-details"></div>
+
+            <div class="flex justify-center mt-8">
+              <button
+                id="retry-quiz"
+                class="bg-primary hover:bg-secondary text-white px-8 py-3 rounded-lg text-lg font-medium"
+              >
+                <i class="fas fa-redo mr-2"></i>Retry Quiz
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
-
 
     <footer class="bg-[#2c3e20] text-white py-12">
       <div class="container mx-auto px-6">
@@ -1189,7 +1561,7 @@
               </a>
               <a
                 href="https://linkedin.com/in/johannes-ethusang"
-                 target="_blank"
+                target="_blank"
                 class="text-gray-400 hover:text-white transition duration-300"
               >
                 <i class="fab fa-linkedin text-xl"></i>
@@ -1215,295 +1587,339 @@
       </div>
     </footer>
 
-    <script>
-      
-        document.querySelectorAll('.tab-btn').forEach(button => {
-            button.addEventListener('click', () => {
-  
-                document.querySelectorAll('.tab-btn').forEach(btn => {
-                    btn.classList.remove('border-primary', 'text-primary');
-                    btn.classList.add('border-transparent');
-                });
-                
-                document.querySelectorAll('.tab-content').forEach(tab => {
-                    tab.classList.remove('active');
-                });
-                
-                button.classList.add('border-primary', 'text-primary');
-                button.classList.remove('border-transparent');
-                
-                const tabId = button.getAttribute('data-tab');
-                document.getElementById(tabId).classList.add('active');
-            });
-        });
-        
-   
-        const flashcards = [
-            {
-                term: "Transaction",
-                definition: "A logical unit of work that must be either entirely completed or aborted. Changes database from one consistent state to another where all data integrity constraints are satisfied."
-            },
-            {
-                term: "ACID Properties",
-                definition: "Atomicity (all or nothing), Consistency (valid state transitions), Isolation (independent execution), Durability (survive failures)."
-            },
-            {
-                term: "Concurrency Control",
-                definition: "Coordination of simultaneous transaction execution to ensure serializability and prevent data integrity problems."
-            },
-            {
-                term: "Lost Update",
-                definition: "Concurrency problem where two transactions access the same data and the first update is overwritten by the second."
-            },
-            {
-                term: "Uncommitted Data",
-                definition: "Concurrency problem where a transaction accesses data that hasn't been committed by another transaction."
-            },
-            {
-                term: "Inconsistent Retrieval",
-                definition: "Concurrency problem where a transaction calculates aggregate functions while data is being updated."
-            },
-            {
-                term: "Shared Lock (S-lock)",
-                definition: "Allows concurrent transactions to read but not update a data item. Multiple transactions can hold shared locks simultaneously."
-            },
-            {
-                term: "Exclusive Lock (X-lock)",
-                definition: "Reserves exclusive access for writing. No other locks can be held on the same data item."
-            },
-            {
-                term: "Two-Phase Locking",
-                definition: "Concurrency control protocol with Growing phase (acquire locks) and Shrinking phase (release locks). Ensures serializability."
-            },
-            {
-                term: "Deadlock",
-                definition: "Condition where two or more transactions wait for each other to release locks, creating a cycle of dependencies."
-            },
-            {
-                term: "Transaction Log",
-                definition: "Record of all database updates, containing before and after values, essential for recovery."
-            },
-            {
-                term: "ARIES Recovery",
-                definition: "Algorithm with three phases: Analysis (identify state), Redo (repeat history), Undo (reverse incomplete transactions)."
-            }
-        ];
-        
-        let currentCardIndex = 0;
-        const totalFlashcards = flashcards.length;
-        document.getElementById('total-flashcards').textContent = totalFlashcards;
-        
+    <a href="index.html" class="floating-btn" title="Back to Home">
+      <i class="fas fa-home text-xl"></i>
+    </a>
 
-        function updateFlashcard() {
-            document.getElementById('term').textContent = flashcards[currentCardIndex].term;
-            document.getElementById('definition').textContent = flashcards[currentCardIndex].definition;
-            document.getElementById('progress-count').textContent = currentCardIndex + 1;
-         
-            const progressPercentage = ((currentCardIndex + 1) / totalFlashcards) * 100;
-            document.getElementById('progress-fill').style.width = `${progressPercentage}%`;
-        }
-        
-  
-        updateFlashcard();
-        
- 
-        document.getElementById('flashcard').addEventListener('click', function() {
-            this.classList.toggle('flipped');
+    <script>
+      document.querySelectorAll(".tab-btn").forEach((button) => {
+        button.addEventListener("click", () => {
+          document.querySelectorAll(".tab-btn").forEach((btn) => {
+            btn.classList.remove("border-primary", "text-primary");
+            btn.classList.add("border-transparent");
+          });
+
+          document.querySelectorAll(".tab-content").forEach((tab) => {
+            tab.classList.remove("active");
+          });
+
+          button.classList.add("border-primary", "text-primary");
+          button.classList.remove("border-transparent");
+
+          const tabId = button.getAttribute("data-tab");
+          document.getElementById(tabId).classList.add("active");
         });
-        
- 
-        document.getElementById('next-card').addEventListener('click', function(e) {
-            e.stopPropagation();
-            if (currentCardIndex < totalFlashcards - 1) {
-                currentCardIndex++;
-                document.getElementById('flashcard').classList.remove('flipped');
-                updateFlashcard();
-            }
+      });
+
+      const flashcards = [
+        {
+          term: "Transaction",
+          definition:
+            "A logical unit of work that must be either entirely completed or aborted. Changes database from one consistent state to another where all data integrity constraints are satisfied.",
+        },
+        {
+          term: "ACID Properties",
+          definition:
+            "Atomicity (all or nothing), Consistency (valid state transitions), Isolation (independent execution), Durability (survive failures).",
+        },
+        {
+          term: "Concurrency Control",
+          definition:
+            "Coordination of simultaneous transaction execution to ensure serializability and prevent data integrity problems.",
+        },
+        {
+          term: "Lost Update",
+          definition:
+            "Concurrency problem where two transactions access the same data and the first update is overwritten by the second.",
+        },
+        {
+          term: "Uncommitted Data",
+          definition:
+            "Concurrency problem where a transaction accesses data that hasn't been committed by another transaction.",
+        },
+        {
+          term: "Inconsistent Retrieval",
+          definition:
+            "Concurrency problem where a transaction calculates aggregate functions while data is being updated.",
+        },
+        {
+          term: "Shared Lock (S-lock)",
+          definition:
+            "Allows concurrent transactions to read but not update a data item. Multiple transactions can hold shared locks simultaneously.",
+        },
+        {
+          term: "Exclusive Lock (X-lock)",
+          definition:
+            "Reserves exclusive access for writing. No other locks can be held on the same data item.",
+        },
+        {
+          term: "Two-Phase Locking",
+          definition:
+            "Concurrency control protocol with Growing phase (acquire locks) and Shrinking phase (release locks). Ensures serializability.",
+        },
+        {
+          term: "Deadlock",
+          definition:
+            "Condition where two or more transactions wait for each other to release locks, creating a cycle of dependencies.",
+        },
+        {
+          term: "Transaction Log",
+          definition:
+            "Record of all database updates, containing before and after values, essential for recovery.",
+        },
+        {
+          term: "ARIES Recovery",
+          definition:
+            "Algorithm with three phases: Analysis (identify state), Redo (repeat history), Undo (reverse incomplete transactions).",
+        },
+      ];
+
+      let currentCardIndex = 0;
+      const totalFlashcards = flashcards.length;
+      document.getElementById("total-flashcards").textContent = totalFlashcards;
+
+      function updateFlashcard() {
+        document.getElementById("term").textContent =
+          flashcards[currentCardIndex].term;
+        document.getElementById("definition").textContent =
+          flashcards[currentCardIndex].definition;
+        document.getElementById("progress-count").textContent =
+          currentCardIndex + 1;
+
+        const progressPercentage =
+          ((currentCardIndex + 1) / totalFlashcards) * 100;
+        document.getElementById(
+          "progress-fill"
+        ).style.width = `${progressPercentage}%`;
+      }
+
+      updateFlashcard();
+
+      document
+        .getElementById("flashcard")
+        .addEventListener("click", function () {
+          this.classList.toggle("flipped");
         });
-        
-     
-        document.getElementById('prev-card').addEventListener('click', function(e) {
-            e.stopPropagation();
-            if (currentCardIndex > 0) {
-                currentCardIndex--;
-                document.getElementById('flashcard').classList.remove('flipped');
-                updateFlashcard();
-            }
-        });
-        
-  
-        document.getElementById('reset-flashcards').addEventListener('click', function() {
-            currentCardIndex = 0;
-            document.getElementById('flashcard').classList.remove('flipped');
+
+      document
+        .getElementById("next-card")
+        .addEventListener("click", function (e) {
+          e.stopPropagation();
+          if (currentCardIndex < totalFlashcards - 1) {
+            currentCardIndex++;
+            document.getElementById("flashcard").classList.remove("flipped");
             updateFlashcard();
+          }
         });
-    
-        document.getElementById('submit-quiz').addEventListener('click', function() {
-         
-            let score = 0;
-            const answers = ['d', 'b', 'c', 'b', 'c'];
-            
-           
-            for (let i = 1; i <= 5; i++) {
-                const selected = document.querySelector(`input[name="q${i}"]:checked`);
-                if (selected && selected.value === answers[i-1]) {
-                    score++;
-                }
+
+      document
+        .getElementById("prev-card")
+        .addEventListener("click", function (e) {
+          e.stopPropagation();
+          if (currentCardIndex > 0) {
+            currentCardIndex--;
+            document.getElementById("flashcard").classList.remove("flipped");
+            updateFlashcard();
+          }
+        });
+
+      document
+        .getElementById("reset-flashcards")
+        .addEventListener("click", function () {
+          currentCardIndex = 0;
+          document.getElementById("flashcard").classList.remove("flipped");
+          updateFlashcard();
+        });
+
+      document
+        .getElementById("submit-quiz")
+        .addEventListener("click", function () {
+          let score = 0;
+          const answers = ["d", "b", "c", "b", "c"];
+
+          for (let i = 1; i <= 5; i++) {
+            const selected = document.querySelector(
+              `input[name="q${i}"]:checked`
+            );
+            if (selected && selected.value === answers[i - 1]) {
+              score++;
             }
-          
-            document.getElementById('score-display').textContent = `${score}/5`;
-            document.getElementById('quiz-container').classList.add('hidden');
-            document.getElementById('quiz-results').classList.remove('hidden');
-       
-            const resultsContainer = document.getElementById('results-details');
-            resultsContainer.innerHTML = '';
-            
-            const questions = [
-                {
-                    question: "1. Which of the following is NOT one of the ACID properties?",
-                    options: [
-                        "Atomicity",
-                        "Consistency",
-                        "Durability",
-                        "Concurrency"
-                    ],
-                    correct: 3,
-                    explanation: "The ACID properties are Atomicity, Consistency, Isolation, and Durability. Concurrency is not one of the ACID properties, though it is a related concept in transaction management."
-                },
-                {
-                    question: "2. What is the main purpose of a transaction log?",
-                    options: [
-                        "To improve database performance",
-                        "To enable database recovery after failures",
-                        "To manage user permissions",
-                        "To optimize query execution"
-                    ],
-                    correct: 1,
-                    explanation: "The transaction log keeps track of all database updates, containing before and after values. This is essential for database recovery after failures, as it allows the DBMS to restore the database to a consistent state."
-                },
-                {
-                    question: "3. Which concurrency problem occurs when a transaction reads uncommitted data that is later rolled back?",
-                    options: [
-                        "Lost update",
-                        "Inconsistent retrieval",
-                        "Uncommitted data",
-                        "Deadlock"
-                    ],
-                    correct: 2,
-                    explanation: "The uncommitted data problem (also known as dirty read) occurs when a transaction accesses data that hasn't been committed by another transaction. If the first transaction is rolled back, the second transaction has read invalid data."
-                },
-                {
-                    question: "4. In the two-phase locking protocol, which phase involves releasing locks?",
-                    options: [
-                        "Growing phase",
-                        "Shrinking phase",
-                        "Commit phase",
-                        "Release phase"
-                    ],
-                    correct: 1,
-                    explanation: "The two-phase locking protocol consists of: 1) Growing phase - transaction acquires all required locks, 2) Shrinking phase - transaction releases locks and cannot obtain new locks."
-                },
-                {
-                    question: "5. Which phase of the ARIES recovery algorithm involves undoing writes of transactions that were active at the time of crash?",
-                    options: [
-                        "Analysis phase",
-                        "Redo phase",
-                        "Undo phase",
-                        "Recovery phase"
-                    ],
-                    correct: 2,
-                    explanation: "The ARIES recovery algorithm has three phases: 1) Analysis - identifies active transactions and dirty pages, 2) Redo - repeats history to restore state, 3) Undo - reverses writes of transactions active at crash."
-                }
-            ];
-            
-            questions.forEach((q, index) => {
-                const questionDiv = document.createElement('div');
-                questionDiv.className = 'bg-white rounded-lg p-4';
-                
-                const questionHeader = document.createElement('div');
-                questionHeader.className = 'flex justify-between items-center mb-2';
-                
-                const questionTitle = document.createElement('h4');
-                questionTitle.className = 'font-bold';
-                questionTitle.textContent = q.question;
-                
-                const selected = document.querySelector(`input[name="q${index+1}"]:checked`);
-                const isCorrect = selected && parseInt(selected.value) === q.correct;
-                
-                const resultIcon = document.createElement('span');
-                resultIcon.className = `rounded-full h-6 w-6 flex items-center justify-center ${isCorrect ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`;
-                resultIcon.innerHTML = isCorrect ? '<i class="fas fa-check"></i>' : '<i class="fas fa-times"></i>';
-                
-                questionHeader.appendChild(questionTitle);
-                questionHeader.appendChild(resultIcon);
-                questionDiv.appendChild(questionHeader);
-                
-                q.options.forEach((option, optIndex) => {
-                    const optDiv = document.createElement('div');
-                    optDiv.className = 'quiz-option p-3 rounded mb-2';
-                    
-                    if (parseInt(optIndex) === q.correct) {
-                        optDiv.classList.add('correct-answer');
-                    } else if (selected && parseInt(selected.value) === optIndex && !isCorrect) {
-                        optDiv.classList.add('incorrect-answer');
-                    }
-                    
-                    optDiv.textContent = option;
-                    questionDiv.appendChild(optDiv);
-                });
-                
-                const explanationDiv = document.createElement('div');
-                explanationDiv.className = 'explanation-box mt-3 bg-gray-50 p-4 rounded-lg';
-                
-                const explanationHeader = document.createElement('div');
-                explanationHeader.className = 'font-bold text-primary mb-2 cursor-pointer flex justify-between items-center';
-                explanationHeader.innerHTML = 'Explanation <i class="fas fa-chevron-down"></i>';
-                
-                explanationHeader.addEventListener('click', function() {
-                    explanationDiv.classList.toggle('open');
-                    const icon = this.querySelector('i');
-                    icon.classList.toggle('fa-chevron-down');
-                    icon.classList.toggle('fa-chevron-up');
-                });
-                
-                const explanationContent = document.createElement('div');
-                explanationContent.className = 'text-gray-700 mt-2';
-                explanationContent.textContent = q.explanation;
-                
-                explanationDiv.appendChild(explanationHeader);
-                explanationDiv.appendChild(explanationContent);
-                questionDiv.appendChild(explanationDiv);
-                
-                resultsContainer.appendChild(questionDiv);
+          }
+
+          document.getElementById("score-display").textContent = `${score}/5`;
+          document.getElementById("quiz-container").classList.add("hidden");
+          document.getElementById("quiz-results").classList.remove("hidden");
+
+          const resultsContainer = document.getElementById("results-details");
+          resultsContainer.innerHTML = "";
+
+          const questions = [
+            {
+              question:
+                "1. Which of the following is NOT one of the ACID properties?",
+              options: [
+                "Atomicity",
+                "Consistency",
+                "Durability",
+                "Concurrency",
+              ],
+              correct: 3,
+              explanation:
+                "The ACID properties are Atomicity, Consistency, Isolation, and Durability. Concurrency is not one of the ACID properties, though it is a related concept in transaction management.",
+            },
+            {
+              question: "2. What is the main purpose of a transaction log?",
+              options: [
+                "To improve database performance",
+                "To enable database recovery after failures",
+                "To manage user permissions",
+                "To optimize query execution",
+              ],
+              correct: 1,
+              explanation:
+                "The transaction log keeps track of all database updates, containing before and after values. This is essential for database recovery after failures, as it allows the DBMS to restore the database to a consistent state.",
+            },
+            {
+              question:
+                "3. Which concurrency problem occurs when a transaction reads uncommitted data that is later rolled back?",
+              options: [
+                "Lost update",
+                "Inconsistent retrieval",
+                "Uncommitted data",
+                "Deadlock",
+              ],
+              correct: 2,
+              explanation:
+                "The uncommitted data problem (also known as dirty read) occurs when a transaction accesses data that hasn't been committed by another transaction. If the first transaction is rolled back, the second transaction has read invalid data.",
+            },
+            {
+              question:
+                "4. In the two-phase locking protocol, which phase involves releasing locks?",
+              options: [
+                "Growing phase",
+                "Shrinking phase",
+                "Commit phase",
+                "Release phase",
+              ],
+              correct: 1,
+              explanation:
+                "The two-phase locking protocol consists of: 1) Growing phase - transaction acquires all required locks, 2) Shrinking phase - transaction releases locks and cannot obtain new locks.",
+            },
+            {
+              question:
+                "5. Which phase of the ARIES recovery algorithm involves undoing writes of transactions that were active at the time of crash?",
+              options: [
+                "Analysis phase",
+                "Redo phase",
+                "Undo phase",
+                "Recovery phase",
+              ],
+              correct: 2,
+              explanation:
+                "The ARIES recovery algorithm has three phases: 1) Analysis - identifies active transactions and dirty pages, 2) Redo - repeats history to restore state, 3) Undo - reverses writes of transactions active at crash.",
+            },
+          ];
+
+          questions.forEach((q, index) => {
+            const questionDiv = document.createElement("div");
+            questionDiv.className = "bg-white rounded-lg p-4";
+
+            const questionHeader = document.createElement("div");
+            questionHeader.className = "flex justify-between items-center mb-2";
+
+            const questionTitle = document.createElement("h4");
+            questionTitle.className = "font-bold";
+            questionTitle.textContent = q.question;
+
+            const selected = document.querySelector(
+              `input[name="q${index + 1}"]:checked`
+            );
+            const isCorrect =
+              selected && parseInt(selected.value) === q.correct;
+
+            const resultIcon = document.createElement("span");
+            resultIcon.className = `rounded-full h-6 w-6 flex items-center justify-center ${
+              isCorrect ? "bg-green-500 text-white" : "bg-red-500 text-white"
+            }`;
+            resultIcon.innerHTML = isCorrect
+              ? '<i class="fas fa-check"></i>'
+              : '<i class="fas fa-times"></i>';
+
+            questionHeader.appendChild(questionTitle);
+            questionHeader.appendChild(resultIcon);
+            questionDiv.appendChild(questionHeader);
+
+            q.options.forEach((option, optIndex) => {
+              const optDiv = document.createElement("div");
+              optDiv.className = "quiz-option p-3 rounded mb-2";
+
+              if (parseInt(optIndex) === q.correct) {
+                optDiv.classList.add("correct-answer");
+              } else if (
+                selected &&
+                parseInt(selected.value) === optIndex &&
+                !isCorrect
+              ) {
+                optDiv.classList.add("incorrect-answer");
+              }
+
+              optDiv.textContent = option;
+              questionDiv.appendChild(optDiv);
             });
-        });
-        
-     
-        document.getElementById('retry-quiz').addEventListener('click', function() {
-           
-            document.querySelectorAll('input[type="radio"]').forEach(radio => {
-                radio.checked = false;
+
+            const explanationDiv = document.createElement("div");
+            explanationDiv.className =
+              "explanation-box mt-3 bg-gray-50 p-4 rounded-lg";
+
+            const explanationHeader = document.createElement("div");
+            explanationHeader.className =
+              "font-bold text-primary mb-2 cursor-pointer flex justify-between items-center";
+            explanationHeader.innerHTML =
+              'Explanation <i class="fas fa-chevron-down"></i>';
+
+            explanationHeader.addEventListener("click", function () {
+              explanationDiv.classList.toggle("open");
+              const icon = this.querySelector("i");
+              icon.classList.toggle("fa-chevron-down");
+              icon.classList.toggle("fa-chevron-up");
             });
-            
-            
-            document.getElementById('quiz-results').classList.add('hidden');
-            document.getElementById('quiz-container').classList.remove('hidden');
+
+            const explanationContent = document.createElement("div");
+            explanationContent.className = "text-gray-700 mt-2";
+            explanationContent.textContent = q.explanation;
+
+            explanationDiv.appendChild(explanationHeader);
+            explanationDiv.appendChild(explanationContent);
+            questionDiv.appendChild(explanationDiv);
+
+            resultsContainer.appendChild(questionDiv);
+          });
         });
-        
-     
-        document.querySelectorAll('.quiz-option').forEach(option => {
-            option.addEventListener('click', function() {
-                const radio = this.querySelector('input[type="radio"]');
-                if (radio) {
-                    radio.checked = true;
-                  
-                    document.querySelectorAll('.quiz-option').forEach(opt => {
-                        opt.classList.remove('bg-blue-100', 'border-primary');
-                    });
-                    this.classList.add('bg-blue-100', 'border-primary');
-                }
+
+      document
+        .getElementById("retry-quiz")
+        .addEventListener("click", function () {
+          document.querySelectorAll('input[type="radio"]').forEach((radio) => {
+            radio.checked = false;
+          });
+
+          document.getElementById("quiz-results").classList.add("hidden");
+          document.getElementById("quiz-container").classList.remove("hidden");
+        });
+
+      document.querySelectorAll(".quiz-option").forEach((option) => {
+        option.addEventListener("click", function () {
+          const radio = this.querySelector('input[type="radio"]');
+          if (radio) {
+            radio.checked = true;
+
+            document.querySelectorAll(".quiz-option").forEach((opt) => {
+              opt.classList.remove("bg-blue-100", "border-primary");
             });
+            this.classList.add("bg-blue-100", "border-primary");
+          }
         });
+      });
     </script>
-</body>
+  </body>
 </html>
